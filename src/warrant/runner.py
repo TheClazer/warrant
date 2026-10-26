@@ -55,6 +55,8 @@ def execute(
     max_usd: float | None = None,
     owner: str = "owner",
     run_id: str | None = None,
+    enforcer: str = "local",
+    inference_url: str | None = None,
 ) -> dict[str, Any]:
     if setup == "warrant":
         if warrant is None:
@@ -95,10 +97,21 @@ def execute(
             "model": model,
         },
     )
-    http = GatedClient(gate, on_decision)
     status = "failed"
     result: dict[str, Any] = {}
+    box = None
+    http: Any = None
     try:
+        if enforcer == "openshell" and setup == "warrant" and warrant is not None:
+            from .enforce import openshell
+            from .enforce.sandbox_client import SandboxClient
+
+            emit("step", {"text": "Creating an NVIDIA OpenShell sandbox for this warrant"})
+            box = openshell.create(warrant, inference_url, workdir=store.path.parent / "policies")
+            emit("sandbox", {"name": box.name, "fingerprint": warrant.fingerprint, "enforcer": "openshell"})
+            http = SandboxClient(box, on_decision)
+        else:
+            http = GatedClient(gate, on_decision)
         starts = "\n".join(entry_points(warrant if setup == "warrant" else None, start_url))
         outcome = run_agent(
             mission.text, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
@@ -109,7 +122,13 @@ def execute(
         result = {"error": f"{type(exc).__name__}: {exc}"[:400]}
         emit("error", result)
     finally:
-        http.close()
+        if http is not None:
+            http.close()
+        if box is not None:
+            from .enforce import openshell
+
+            openshell.delete(box)
+            emit("step", {"text": f"Deleted sandbox {box.name}"})
         usage = ledger.summary()
         store.finish_run(rid, status, result, usage)
         emit("done", {"status": status, **usage})

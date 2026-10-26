@@ -29,6 +29,7 @@ CREATE INDEX IF NOT EXISTS warrants_mission ON warrants(mission_id, created_at);
 
 class Store:
     def __init__(self, path: Path):
+        self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
         self._db = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
         self._db.row_factory = sqlite3.Row

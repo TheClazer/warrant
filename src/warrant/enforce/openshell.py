@@ -15,11 +15,14 @@ Sandbox names are limited to 19 characters. Policy decisions are logged as OCSF 
 
 from __future__ import annotations
 
+import os
 import re
 import secrets
+import shlex
 import shutil
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -53,15 +56,38 @@ def sandbox_name(prefix: str = "wrt") -> str:
     return f"{prefix}-{secrets.token_hex(6)}"[:MAX_NAME]
 
 
-def cli() -> str:
+def cli() -> list[str]:
+    """The OpenShell command. ``WARRANT_OPENSHELL_CMD`` overrides it, e.g. ``wsl -d Ubuntu -- openshell`` when the
+    app runs on Windows and OpenShell runs in WSL during development."""
+    override = os.environ.get("WARRANT_OPENSHELL_CMD", "").strip()
+    if override:
+        return shlex.split(override)
     path = shutil.which("openshell")
     if not path:
         raise OpenShellUnavailable("openshell CLI not found. Install it on the Linux host (see deploy/README.md).")
-    return path
+    return [path]
+
+
+def _host_path(path: Path) -> str:
+    """Path as the OpenShell CLI sees it. Through WSL, a Windows drive path becomes /mnt/<drive>/..."""
+    command = cli()
+    if command and Path(command[0]).stem.lower() == "wsl":
+        resolved = path.resolve()
+        drive = resolved.drive.rstrip(":").lower()
+        return f"/mnt/{drive}" + resolved.as_posix()[len(resolved.drive) :]
+    return str(path)
 
 
 def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([cli(), *args], capture_output=True, text=True, timeout=timeout, check=False)
+    return subprocess.run(
+        [*cli(), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+        check=False,
+    )
 
 
 def create(
@@ -69,17 +95,38 @@ def create(
 ) -> Sandbox:
     name = sandbox_name()
     directory = workdir or Path(tempfile.mkdtemp(prefix="warrant-"))
+    directory.mkdir(parents=True, exist_ok=True)
     policy_path = directory / f"{name}.policy.yaml"
     policy_path.write_text(render_policy(warrant, inference_url=inference_url), encoding="utf-8")
-    args = ["sandbox", "create", "--name", name, "--from", image, "--policy", str(policy_path)]
+    args = ["sandbox", "create", "--name", name, "--from", image, "--policy", _host_path(policy_path)]
     result = _run([*args, "--detach", "--no-tty", "--no-auto-providers"], timeout=900)
     if result.returncode != 0:
         raise OpenShellUnavailable(f"sandbox create failed: {(result.stderr or result.stdout).strip()[-500:]}")
-    return Sandbox(name=name, policy_path=policy_path)
+    sandbox = Sandbox(name=name, policy_path=policy_path)
+    wait_ready(sandbox)
+    return sandbox
+
+
+def wait_ready(sandbox: Sandbox, timeout_s: float = 180) -> None:
+    """Block until OpenShell reports the sandbox Ready; a detached create returns before that."""
+    deadline = time.monotonic() + timeout_s
+    last = ""
+    while time.monotonic() < deadline:
+        last = _run(["sandbox", "get", sandbox.name], timeout=30).stdout
+        if "Phase: Ready" in last:
+            return
+        if "Phase: Error" in last:
+            break
+        time.sleep(2)
+    detail = next((line.strip() for line in last.splitlines() if "Ready:" in line), "not ready")
+    delete(sandbox)
+    raise OpenShellUnavailable(f"sandbox {sandbox.name} did not become ready: {detail}")
 
 
 def exec_in(sandbox: Sandbox, command: list[str], timeout: int = 300) -> subprocess.CompletedProcess[str]:
-    return _run(["sandbox", "exec", "-n", sandbox.name, "--no-tty", "--", *command], timeout=timeout)
+    # OpenShell 0.1.5 runs exec arguments through a shell, so each argument is quoted to arrive intact.
+    quoted = [shlex.quote(arg) for arg in command]
+    return _run(["sandbox", "exec", "-n", sandbox.name, "--no-tty", "--", *quoted], timeout=timeout)
 
 
 def parse_ocsf(lines: str) -> list[dict]:

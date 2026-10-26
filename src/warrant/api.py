@@ -199,6 +199,8 @@ def create_app(
                 max_model_calls=cfg.run_max_model_calls,
                 owner=who,
                 run_id=rid,
+                enforcer=cfg.enforcer,
+                inference_url=cfg.token_factory_url,
             ),
             daemon=True,
         ).start()

@@ -32,3 +32,8 @@ Notes kept while building, for the hackathon feedback submission. Facts only; ea
 - Positive: the OCSF decision lines are excellent. Each line carries ALLOWED/DENIED, the method and URL, the
   policy name and a human-readable reason. This made a user-facing security feed straightforward.
 - Positive: L7 enforcement on HTTPS (method and path) worked exactly as documented once `enforcement: enforce` was set.
+- `openshell sandbox exec -- ARGS` passes the arguments through a shell: an argument containing a newline
+  split the command. Quoting every argument fixed it. Documenting this (or passing argv verbatim) would help.
+- Decision log lines arrive shortly after the HTTP response, so a client must wait for the matching line.
+- On WSL, the VM shuts down when no Windows process is attached, which stops the gateway user service.
+  Users need `loginctl enable-linger` and something keeping WSL alive; worth a note in the WSL docs.

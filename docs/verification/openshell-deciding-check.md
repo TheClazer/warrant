@@ -29,3 +29,17 @@ The raw decision log is kept in `tests/fixtures/openshell_0.1.5_ocsf.log` and pa
 - Sandbox names are limited to 19 characters.
 - Docker Desktop cannot be used as the engine on WSL: the supervisor runs with host networking and expects the
   gateway on 127.0.0.1, which is Docker Desktop's VM, not the WSL distro.
+
+## Live mission through OpenShell (2026-10-26)
+
+Mission "Check my course portal for new announcements and upcoming deadlines, and brief me in five bullets."
+
+1. Nemotron 3 Super (Token Factory) drafted the warrant: read announcements, read assignments. Checker passed.
+2. `warrant.enforce.openshell.create` started sandbox `wrt-39deadf61be2` from that warrant's policy.
+3. The agent's two page reads ran as curl inside the sandbox. OpenShell logged both as `ALLOWED` under the
+   warrant's policies.
+4. Nemotron wrote the brief (midterm moved to Hall B, Lab 4 extension, problem set 5, guest lecture, office hours).
+5. The sandbox was deleted. Totals: 3 Nemotron calls, 4,019 prompt and 423 completion tokens.
+
+In a separate check inside a portal-warrant sandbox, `GET /grades`, `POST /forum/t1/reply` and any other
+site were all denied by OpenShell and reported back with OpenShell's own reasons.
