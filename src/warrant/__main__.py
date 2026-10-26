@@ -61,16 +61,16 @@ def main(argv: list[str] | None = None) -> int:
         from .store import Store
 
         warrant = Store(settings.data_dir / "warrant.sqlite").warrant(args.warrant_id)
-        name = f"warrant-check-{warrant.id[-8:]}"
-        box = openshell.create(warrant, name, settings.token_factory_url)
-        print(f"Created sandbox {name} with policy {box.policy_path}")
+        box = openshell.create(warrant, settings.token_factory_url)
+        print(f"Created sandbox {box.name} with policy {box.policy_path}")
         try:
-            print(openshell._run(["policy", "get", name, "--full"]).stdout)
-            print("Denied requests so far:", openshell.denials(box))
+            print(openshell._run(["policy", "get", box.name, "--full"]).stdout)
+            for e in openshell.decisions(box):
+                print(e["decision"], e.get("method"), e["host"], e.get("path"), e["reason"])
         finally:
             if not args.keep:
                 openshell.delete(box)
-                print(f"Deleted sandbox {name}")
+                print(f"Deleted sandbox {box.name}")
         return 0
     return 1
 

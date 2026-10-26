@@ -25,3 +25,10 @@ Notes kept while building, for the hackathon feedback submission. Facts only; ea
   starts the supervisor with host networking and endpoint `https://127.0.0.1:17670`, but Docker Desktop's
   "host" is its own VM, not the WSL distro running the gateway. The installer notes recommend Docker Engine
   from a system package; a clear error for Docker Desktop would save time.
+- Sandbox names are limited to 19 characters (`name exceeds maximum length (24 > 19)`); the docs examples do not
+  mention the limit.
+- The default image `nvcr.io/nvidia/base/ubuntu:24.04` has no curl or Python, so even a connectivity check needs
+  a custom image. A documented "tools" image would make first-run checks easier.
+- Positive: the OCSF decision lines are excellent. Each line carries ALLOWED/DENIED, the method and URL, the
+  policy name and a human-readable reason. This made a user-facing security feed straightforward.
+- Positive: L7 enforcement on HTTPS (method and path) worked exactly as documented once `enforcement: enforce` was set.

@@ -1,35 +1,42 @@
 """NVIDIA OpenShell backend: one sandbox per mission run, created with the warrant's policy.
 
-Commands follow the OpenShell documentation ("Manage Sandbox Policies"):
+Verified against OpenShell 0.1.5 (Linux, native Docker Engine) on 2026-10-26:
 
-    openshell sandbox create --name NAME --policy policy.yaml
-    openshell policy set NAME --policy policy.yaml --wait
+    openshell sandbox create --name NAME --from IMAGE --policy policy.yaml --detach --no-tty --no-auto-providers
+    openshell sandbox exec -n NAME --no-tty -- CMD
     openshell logs NAME --since 10m --source sandbox
     openshell sandbox delete NAME
 
-OpenShell is alpha software. This module is exercised on the Linux host by ``warrant openshell-check``;
-the log-line parser is deliberately tolerant and keeps the raw line with every event.
+Sandbox names are limited to 19 characters. Policy decisions are logged as OCSF lines, for example::
+
+    [1793024149.462] [sandbox] [OCSF ] [ocsf] HTTP:POST [MED] DENIED POST https://example.com/
+        [policy:example_read_home engine:l7] [reason:L7_REQUEST deny POST example.com:443/ ...]
 """
 
 from __future__ import annotations
 
-import contextlib
-import json
 import re
+import secrets
 import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from ..models import Warrant
 from ..policy import render_policy
 
-DENY_WORDS = re.compile(r"\b(deny|denied|blocked|reject(ed)?)\b", re.IGNORECASE)
-TARGET = re.compile(
-    r"(?P<method>GET|POST|PUT|PATCH|DELETE|HEAD|CONNECT)?\s*(?P<host>[a-z0-9.-]+\.[a-z]{2,}|\d+\.\d+\.\d+\.\d+)(:(?P<port>\d+))?(?P<path>/\S*)?",
-    re.IGNORECASE,
+MAX_NAME = 19
+DEFAULT_IMAGE = "warrant-sandbox:dev"  # built from deploy/sandbox.Dockerfile
+
+OCSF = re.compile(
+    r"^\[(?P<ts>[\d.]+)\]\s+\[sandbox\]\s+\[OCSF\s*\]\s+\[ocsf\]\s+"
+    r"(?P<cls>HTTP:[A-Z]+|NET:OPEN|NET:REFUSE)\s+\[(?P<sev>[A-Z]+)\]\s+(?P<decision>ALLOWED|DENIED)\s+(?P<rest>.*)$"
 )
+HTTP_TARGET = re.compile(r"^(?P<method>[A-Z]+)\s+(?P<url>https?://\S+)")
+NET_TARGET = re.compile(r"(?:(?P<binary>/\S+?)\(\d+\)\s+->\s+)?(?P<host>[A-Za-z0-9.-]+)(?::(?P<port>\d+))?")
+TAG = re.compile(r"\[(policy|reason):([^\]]*)\]")
 
 
 class OpenShellUnavailable(RuntimeError):
@@ -40,6 +47,10 @@ class OpenShellUnavailable(RuntimeError):
 class Sandbox:
     name: str
     policy_path: Path
+
+
+def sandbox_name(prefix: str = "wrt") -> str:
+    return f"{prefix}-{secrets.token_hex(6)}"[:MAX_NAME]
 
 
 def cli() -> str:
@@ -53,41 +64,70 @@ def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str
     return subprocess.run([cli(), *args], capture_output=True, text=True, timeout=timeout, check=False)
 
 
-def create(warrant: Warrant, name: str, inference_url: str, workdir: Path | None = None) -> Sandbox:
+def create(
+    warrant: Warrant, inference_url: str | None = None, image: str = DEFAULT_IMAGE, workdir: Path | None = None
+) -> Sandbox:
+    name = sandbox_name()
     directory = workdir or Path(tempfile.mkdtemp(prefix="warrant-"))
     policy_path = directory / f"{name}.policy.yaml"
     policy_path.write_text(render_policy(warrant, inference_url=inference_url), encoding="utf-8")
-    result = _run(["sandbox", "create", "--name", name, "--policy", str(policy_path)])
+    args = ["sandbox", "create", "--name", name, "--from", image, "--policy", str(policy_path)]
+    result = _run([*args, "--detach", "--no-tty", "--no-auto-providers"], timeout=900)
     if result.returncode != 0:
-        raise OpenShellUnavailable(f"sandbox create failed: {result.stderr.strip()[:500]}")
+        raise OpenShellUnavailable(f"sandbox create failed: {(result.stderr or result.stdout).strip()[-500:]}")
     return Sandbox(name=name, policy_path=policy_path)
 
 
-def denials(sandbox: Sandbox, since: str = "10m") -> list[dict]:
-    """Parse denied requests from the sandbox log. JSON lines are used when OpenShell emits them."""
-    result = _run(["logs", sandbox.name, "--since", since, "--source", "sandbox"], timeout=30)
+def exec_in(sandbox: Sandbox, command: list[str], timeout: int = 300) -> subprocess.CompletedProcess[str]:
+    return _run(["sandbox", "exec", "-n", sandbox.name, "--no-tty", "--", *command], timeout=timeout)
+
+
+def parse_ocsf(lines: str) -> list[dict]:
+    """Turn OpenShell OCSF log lines into Warrant network events (both allowed and denied)."""
     events = []
-    for line in result.stdout.splitlines():
-        record: dict = {}
-        with contextlib.suppress(json.JSONDecodeError):
-            record = json.loads(line)
-        text = json.dumps(record) if record else line
-        if not DENY_WORDS.search(text):
+    for line in lines.splitlines():
+        m = OCSF.match(line.strip())
+        if not m:
             continue
-        match = TARGET.search(text)
-        events.append(
-            {
-                "decision": "blocked",
-                "method": (match.group("method") or "").upper() if match else "",
-                "host": match.group("host") if match else "",
-                "port": int(match.group("port")) if match and match.group("port") else None,
-                "path": match.group("path") if match else "",
-                "reason": "denied by OpenShell policy",
-                "raw": line[:500],
+        rest = m.group("rest")
+        tags = dict(TAG.findall(rest))
+        denied = m.group("decision") == "DENIED"
+        event: dict = {
+            "decision": "blocked" if denied else "allowed",
+            "layer": "http" if m.group("cls").startswith("HTTP") else "connection",
+            "t": float(m.group("ts")),
+            "severity": m.group("sev"),
+            "policy": (tags.get("policy") or "").split(" ")[0] or None,
+            "reason": tags.get("reason") or ("denied by OpenShell policy" if denied else ""),
+            "raw": line.strip()[:600],
+        }
+        http = HTTP_TARGET.match(rest)
+        if http:
+            parts = urlsplit(http.group("url"))
+            event |= {
+                "method": http.group("method"),
+                "url": http.group("url"),
+                "host": parts.hostname or "",
+                "port": parts.port or (443 if parts.scheme == "https" else 80),
+                "path": parts.path or "/",
             }
-        )
+        else:
+            net = NET_TARGET.search(rest)
+            event |= {
+                "method": "CONNECT",
+                "host": net.group("host") if net else "",
+                "port": int(net.group("port")) if net and net.group("port") else None,
+                "path": "",
+                "binary": net.group("binary") if net else None,
+            }
+        events.append(event)
     return events
 
 
+def decisions(sandbox: Sandbox, since: str = "10m") -> list[dict]:
+    result = _run(["logs", sandbox.name, "--since", since, "--source", "sandbox"], timeout=60)
+    return parse_ocsf(result.stdout)
+
+
 def delete(sandbox: Sandbox) -> None:
-    _run(["sandbox", "delete", sandbox.name], timeout=60)
+    _run(["sandbox", "delete", sandbox.name], timeout=120)
