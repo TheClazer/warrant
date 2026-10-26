@@ -1,0 +1,13 @@
+[Unit]
+Description=Warrant demo course portal (fictional)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/warrant
+ExecStart=/opt/warrant/.venv/bin/warrant portal --host 127.0.0.1 --port 8201
+Restart=on-failure
+User=warrant
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

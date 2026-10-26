@@ -1,0 +1,9 @@
+# Replace the hostnames with the DNS names pointing at the Nebius machine. Caddy obtains HTTPS certificates.
+warrant.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8090
+}
+
+portal.warrant.example.com {
+	reverse_proxy 127.0.0.1:8201
+}

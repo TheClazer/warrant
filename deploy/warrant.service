@@ -1,0 +1,14 @@
+[Unit]
+Description=Warrant API and interface
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/warrant
+EnvironmentFile=/opt/warrant/.env
+ExecStart=/opt/warrant/.venv/bin/warrant serve --host 127.0.0.1 --port 8090
+Restart=on-failure
+User=warrant
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

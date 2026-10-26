@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 STUDENT = {"name": "Aarav Mehta", "id": "NF-24-0117", "programme": "B.Tech Computer Science, Year 3"}
 
 COURSES = [
@@ -90,7 +92,7 @@ GRADES = [
     {"course": "HS110", "item": "Essay 1", "score": "B+"},
 ]
 
-FORUM = [
+FORUM: list[dict[str, Any]] = [
     {
         "id": "t1",
         "course": "CS301",
