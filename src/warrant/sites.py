@@ -33,7 +33,7 @@ def _cap(site: str, url: str, cid: str, summary: str, plain: str, methods: tuple
 
 def build_registry(settings: Settings) -> tuple[Site, ...]:
     portal = settings.portal_url.rstrip("/")
-    _, portal_host, _ = _origin(portal)
+    portal_name = "the course portal"
     p = "portal"
     sites = [
         Site(
@@ -46,7 +46,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.read.courses",
                     "List courses and read course pages",
-                    f"Read your courses on {portal_host}",
+                    f"Read your courses on {portal_name}",
                     ("GET",),
                     ("/", "/courses", "/courses/**"),
                 ),
@@ -55,7 +55,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.read.announcements",
                     "Read course announcements",
-                    f"Read announcements on {portal_host}",
+                    f"Read announcements on {portal_name}",
                     ("GET",),
                     ("/announcements", "/announcements/**"),
                 ),
@@ -64,7 +64,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.read.assignments",
                     "Read assignments and their deadlines",
-                    f"Read assignments and deadlines on {portal_host}",
+                    f"Read assignments and deadlines on {portal_name}",
                     ("GET",),
                     ("/assignments", "/assignments/*"),
                 ),
@@ -73,7 +73,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.read.grades",
                     "Read your grades",
-                    f"Read your grades on {portal_host}",
+                    f"Read your grades on {portal_name}",
                     ("GET",),
                     ("/grades",),
                 ),
@@ -82,7 +82,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.read.forum",
                     "Read course discussion threads",
-                    f"Read course discussions on {portal_host}",
+                    f"Read course discussions on {portal_name}",
                     ("GET",),
                     ("/forum", "/forum/**"),
                 ),
@@ -91,7 +91,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.write.submit",
                     "Submit an assignment",
-                    f"Submit an assignment on {portal_host} (asks you every run)",
+                    f"Submit an assignment on {portal_name} (asks you every run)",
                     ("POST",),
                     ("/assignments/*/submit",),
                 ),
@@ -100,7 +100,7 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                     portal,
                     "portal.write.forum",
                     "Post a reply in a discussion",
-                    f"Post a reply in a course discussion on {portal_host} (asks you every run)",
+                    f"Post a reply in a course discussion on {portal_name} (asks you every run)",
                     ("POST",),
                     ("/forum/*/reply",),
                 ),

@@ -12,3 +12,4 @@ dist/
 node_modules/
 web/dist/
 eval/results/runs/
+.claude/
