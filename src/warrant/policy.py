@@ -43,17 +43,12 @@ def render_policy(warrant: Warrant, *, inference_url: str | None = None, workdir
             "binaries": ANY_BINARY,
         }
 
-    policy = {
-        "version": 1,
-        "filesystem_policy": {
-            "include_workdir": workdir,
-            "read_only": ["/usr", "/lib", "/etc", "/opt"],
-            "read_write": ["/tmp"],
-        },
-        "landlock": {"compatibility": "best_effort"},
-        "process": {"run_as_user": "sandbox", "run_as_group": "sandbox"},
-        "network_policies": network,
-    }
+    # Filesystem and process sections are left to OpenShell's driver defaults: the default image has no
+    # dedicated "sandbox" user (verified on OpenShell 0.1.5), and the workdir is included when
+    # filesystem_policy is omitted. A warrant governs network reach, which is what this policy pins down.
+    policy: dict = {"version": 1, "network_policies": network}
+    if not workdir:
+        policy["filesystem_policy"] = {"include_workdir": False}
     header = (
         f"# Warrant {warrant.id} for mission {warrant.mission_id}\n"
         f"# fingerprint sha256:{warrant.fingerprint}\n"
