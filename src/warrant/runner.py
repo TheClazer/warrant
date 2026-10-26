@@ -18,6 +18,20 @@ class RunRefused(RuntimeError):
     pass
 
 
+def entry_points(warrant: Warrant | None, fallback: str) -> list[str]:
+    """Concrete pages the warrant allows the agent to GET, used as starting points."""
+    if warrant is None:
+        return [fallback]
+    urls = []
+    for rule in warrant.rules:
+        if "GET" not in rule.methods:
+            continue
+        default = 443 if rule.scheme == "https" else 80
+        origin = f"{rule.scheme}://{rule.host}" + ("" if rule.port == default else f":{rule.port}")
+        urls += [origin + p for p in rule.paths if "*" not in p]
+    return urls or [fallback]
+
+
 def ensure_runnable(warrant: Warrant, mission: Mission, approved_this_run: bool) -> None:
     if warrant.mission_id != mission.id or warrant.mission_sha256 != mission.text_sha256:
         raise RunRefused("The warrant does not match the current mission text.")
@@ -85,8 +99,9 @@ def execute(
     status = "failed"
     result: dict[str, Any] = {}
     try:
+        starts = "\n".join(entry_points(warrant if setup == "warrant" else None, start_url))
         outcome = run_agent(
-            mission.text, start_url, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
+            mission.text, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
         )
         status = outcome.status
         result = {"answer": outcome.answer, "steps": outcome.steps, "blocked": outcome.blocked}
