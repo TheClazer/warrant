@@ -3,6 +3,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { api, Run, RunEvent, streamRun } from './api'
 import { Answer, ago, Pill, Shimmer, Skeleton, Ticker } from './ui'
 
+function whyText(e: RunEvent) {
+  const reason = String(e.reason ?? '')
+  if (e.decision !== 'blocked') return e.rule ? `Allowed by ${String(e.rule)}` : reason || 'Allowed by the warrant'
+  if (reason.startsWith('OpenShell')) return reason.replace(/^OpenShell: /, 'OpenShell: ')
+  return 'Not in this mission’s warrant.'
+}
+
 export function RunView({ runId, onBack }: { runId: string; onBack: () => void }) {
   const [run, setRun] = useState<Run | null>(null)
   const [events, setEvents] = useState<RunEvent[]>([])
@@ -33,6 +40,7 @@ export function RunView({ runId, onBack }: { runId: string; onBack: () => void }
   const activity = events.filter(e => ['step', 'answer', 'error'].includes(e.kind))
   const page = [...events].reverse().find(e => e.kind === 'page')
   const answer = events.find(e => e.kind === 'answer')
+  const sandbox = events.find(e => e.kind === 'sandbox')
   const done = events.some(e => e.kind === 'done')
   const status = done ? (run?.status === 'running' ? 'completed' : run?.status ?? 'completed') : 'running'
   const tokens = useMemo(
@@ -50,7 +58,10 @@ export function RunView({ runId, onBack }: { runId: string; onBack: () => void }
       <header className="rhead">
         <button className="link" onClick={onBack}>← Missions</button>
         <div className="rhead-title">
-          <span className="eyebrow">Run · {ago(run.started_at)} · {run.setup === 'warrant' ? 'under warrant' : run.setup}</span>
+          <span className="eyebrow">
+            Run · {ago(run.started_at)} · {run.setup === 'warrant' ? 'under warrant' : run.setup}
+            {sandbox ? ` · OpenShell sandbox ${String(sandbox.name)}` : ' · local enforcer'}
+          </span>
           <h1>{status === 'running' ? <Shimmer>Agent is working</Shimmer> : 'Run finished'}</h1>
         </div>
         <Pill status={status} />
@@ -106,7 +117,7 @@ export function RunView({ runId, onBack }: { runId: string; onBack: () => void }
                     <span>{new Date(Number(e.t) * 1000).toLocaleTimeString()}</span>
                   </div>
                   <div className="ev-target"><b>{String(e.method)}</b> {String(e.host)}{e.port && ![80, 443].includes(Number(e.port)) ? `:${e.port}` : ''}{String(e.path)}</div>
-                  <div className="ev-why">{e.decision === 'blocked' ? 'Not in this mission’s warrant.' : `Matches ${String(e.rule ?? 'the warrant')}`}</div>
+                  <div className="ev-why">{whyText(e)}</div>
                 </motion.li>
               ))}
             </AnimatePresence>

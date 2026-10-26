@@ -38,7 +38,7 @@ export type Run = {
 export type RunEvent = {
   seq: number
   t: number
-  kind: 'start' | 'step' | 'page' | 'network' | 'model' | 'answer' | 'error' | 'done'
+  kind: 'start' | 'step' | 'page' | 'network' | 'model' | 'answer' | 'error' | 'done' | 'sandbox'
   [key: string]: unknown
 }
 export type Mission = {
@@ -115,7 +115,7 @@ export const api = {
 
 export function streamRun(id: string, onEvent: (e: RunEvent) => void): () => void {
   const source = new EventSource(`/api/runs/${id}/stream`)
-  const kinds = ['start', 'step', 'page', 'network', 'model', 'answer', 'error', 'done']
+  const kinds = ['start', 'step', 'page', 'network', 'model', 'answer', 'error', 'done', 'sandbox']
   kinds.forEach(k => source.addEventListener(k, ev => {
     const data = JSON.parse((ev as MessageEvent).data) as RunEvent
     onEvent(data)
