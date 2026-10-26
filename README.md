@@ -34,6 +34,16 @@ mission ──► Nemotron (Token Factory) ──► draft warrant ──► che
                                               └─ agent (Hermes on the host)
 ```
 
+## Verified so far
+
+All on 26 October 2026, with real services. Details in `docs/verification/openshell-deciding-check.md`.
+
+| Check | Result |
+|---|---|
+| Nemotron 3 Super drafts warrants for 4 missions | Minimal capabilities chosen each time; writing missions marked "ask every run"; checker passed |
+| Warrant policy inside a real OpenShell 0.1.5 sandbox | Allowed GET returned 200; POST, an unlisted path and an unlisted host were denied, with OpenShell's own reasons |
+| Full mission under OpenShell | Fresh sandbox per run, agent read only the 2 warrant pages from inside it, Nemotron wrote a correct brief, sandbox deleted |
+
 ## What is in this repository
 
 | Path | What it is |
@@ -64,8 +74,20 @@ uv run warrant serve --port 8090
 Open http://127.0.0.1:8090. Without `NEBIUS_API_KEY` the interface works, but drafting and running are
 disabled and say so.
 
-On a laptop without Docker, requests are enforced by the in-process development enforcer, which applies
-the same decision logic as the OpenShell policy. On the Linux host, set `WARRANT_ENFORCER=openshell`.
+### With NVIDIA OpenShell
+
+Set `WARRANT_ENFORCER=openshell`. Each run then gets a fresh sandbox created from its warrant, built from
+`deploy/sandbox.Dockerfile`:
+
+```bash
+docker build -t warrant-sandbox:dev -f deploy/sandbox.Dockerfile deploy
+```
+
+OpenShell needs Linux (or WSL 2) with Docker Engine; Docker Desktop does not work as the engine on WSL.
+When the app runs on Windows and OpenShell runs in WSL, set `WARRANT_OPENSHELL_CMD="wsl -d Ubuntu -- openshell"`.
+
+Without OpenShell, requests go through the in-process development enforcer, which applies the same decision
+logic as the OpenShell policy. The interface says which enforcer each run used.
 
 ## Tests
 
