@@ -11,7 +11,7 @@ Record each section separately, then join. Use real runs only. If a run is slow,
 | 1:05–1:45 | Run now. Run screen: sandbox name in the header, steps ticking, allowed requests, result appears | "Each run gets a fresh OpenShell sandbox. The agent reads the portal from inside it. Nemotron writes my brief, then the sandbox is deleted." |
 | 1:45–2:20 | A mission that tries to go beyond its warrant (the attack-test page). Yellow BLOCKED events with OpenShell's reason | "This page contains instructions meant to pull the agent elsewhere. OpenShell blocks every request outside the warrant and tells us why. The mission still finishes." |
 | 2:20–2:40 | Evidence screen and the verification document | "We report only measured results: [real numbers]." |
-| 2:40–2:50 | Repo and demo URL | "Open source, running on our Nebius machine. Try it at [URL]." |
+| 2:40–2:50 | Repo and demo URL | "Open source, running on our Nebius machine. Try it at warrant-demo.onrender.com." |
 
 Must be visible: the words Nemotron and Token Factory, OpenShell blocking a request, the demo URL, the repo.
 Never show: the API key, the owner token, the `.env` file.
