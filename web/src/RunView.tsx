@@ -78,17 +78,15 @@ export function RunView({ runId, onBack }: { runId: string; onBack: () => void }
       <div className="rgrid">
         <section className="panel">
           <span className="eyebrow">What the agent is reading</span>
-          <AnimatePresence mode="wait">
-            {page ? (
-              <motion.div key={page.seq} className="reader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {page ? (
+              <motion.div key={page.seq} className="reader" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="reader-url mono">{String(page.url)}</div>
                 <h3>{String(page.title || 'Untitled page')}</h3>
                 <pre>{String(page.excerpt ?? '')}</pre>
               </motion.div>
             ) : (
-              <motion.div key="none" className="reader empty"><Skeleton lines={5} /></motion.div>
+              <div className="reader empty"><Skeleton lines={5} /></div>
             )}
-          </AnimatePresence>
           <span className="eyebrow" style={{ marginTop: 18 }}>Steps</span>
           <ol className="activity">
             <AnimatePresence initial={false}>

@@ -64,15 +64,14 @@ function App() {
       </header>
 
       <main className="shell">
-        <AnimatePresence mode="wait">
-          <motion.div key={route.view + (route.run ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+        {/* Page changes fade in only; never wait for an exit animation, which can stall in a background tab. */}
+        <motion.div key={route.view + (route.run ?? '')} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}>
             {route.view === 'missions' && <Missions onOpenRun={id => go('run', id)} notify={notify} />}
             {route.view === 'run' && route.run && <RunView runId={route.run} onBack={() => go('missions')} />}
             {route.view === 'sites' && <Catalogue />}
             {route.view === 'evidence' && <Evidence />}
-          </motion.div>
-        </AnimatePresence>
+        </motion.div>
       </main>
 
       <footer className="foot mono">
