@@ -177,6 +177,9 @@ nav a:hover, nav a.on { color: var(--ink) }
 .answer p { margin: 0 0 8px }
 .answer ul { margin: 0; padding-left: 18px }
 .answer li { margin: 0 0 5px }
+.answer h4 { margin: 4px 0 8px; font-size: 15px; font-stretch: 105% }
+.answer-table { overflow-x: auto; margin: 4px 0 10px }
+.answer-table table { min-width: 480px; font-size: 13.5px }
 .answer code { background: var(--ink-06); padding: 0 4px }
 .err { background: var(--signal); padding: 10px 12px; font-weight: 600 }
 

@@ -65,20 +65,34 @@ export function ago(t: number) {
   return new Date(t * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
 
-/** Renders the agent's short Markdown answer: paragraphs and bullet lists, bold, inline code. */
+/** Renders the agent's short Markdown answer: headings, paragraphs, bullet lists, tables, bold, italics, code. */
 export function Answer({ text }: { text: string }) {
   const blocks = text.split(/\n{2,}/)
   const inline = (s: string) =>
-    s.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
+    s.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g).map((part, i) =>
       part.startsWith('**') ? <b key={i}>{part.slice(2, -2)}</b>
+        : part.startsWith('*') && part.endsWith('*') && part.length > 2 ? <i key={i}>{part.slice(1, -1)}</i>
         : part.startsWith('`') ? <code key={i}>{part.slice(1, -1)}</code> : part)
   return (
     <div className="answer">
       {blocks.map((b, i) => {
         const lines = b.split('\n').filter(Boolean)
+        if (lines.length >= 2 && lines.every(l => l.trim().startsWith('|'))) {
+          const cells = (l: string) => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim())
+          const [head, ...body] = lines.filter(l => !/^\s*\|?\s*:?-{2,}/.test(l)).map(cells)
+          return (
+            <div className="answer-table" key={i}>
+              <table>
+                <thead><tr>{head.map((h, j) => <th key={j}>{inline(h)}</th>)}</tr></thead>
+                <tbody>{body.map((r, k) => <tr key={k}>{r.map((c, j) => <td key={j}>{inline(c)}</td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          )
+        }
         if (lines.every(l => /^\s*[-*•]\s+/.test(l))) {
           return <ul key={i}>{lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*[-*•]\s+/, ''))}</li>)}</ul>
         }
+        if (/^#{1,4}\s/.test(b)) return <h4 key={i}>{inline(b.replace(/^#{1,4}\s+/, ''))}</h4>
         return <p key={i}>{inline(b)}</p>
       })}
     </div>
