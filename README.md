@@ -89,6 +89,13 @@ When the app runs on Windows and OpenShell runs in WSL, set `WARRANT_OPENSHELL_C
 Without OpenShell, requests go through the in-process development enforcer, which applies the same decision
 logic as the OpenShell policy. The interface says which enforcer each run used.
 
+## Public demo
+
+`Dockerfile` builds one container with the app and the fictional portal; `render.yaml` deploys it on Render's
+free plan (New > Blueprint > this repository, then enter `NEBIUS_API_KEY`). The public demo uses the
+built-in enforcer, because OpenShell needs its own Docker host. Daily caps on drafts and runs
+(`WARRANT_DAILY_DRAFT_CAP`, `WARRANT_DAILY_RUN_CAP`) protect the Token Factory credits.
+
 ## Tests
 
 ```bash

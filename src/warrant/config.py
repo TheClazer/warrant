@@ -36,6 +36,9 @@ class Settings:
     admin_token: str = field(default_factory=lambda: os.environ.get("WARRANT_ADMIN_TOKEN", ""), repr=False)
     tavily_api_key: str = field(default_factory=lambda: os.environ.get("TAVILY_API_KEY", ""), repr=False)
     guest_daily_usd_cap: float = field(default_factory=lambda: _float("WARRANT_GUEST_DAILY_USD_CAP", 3.0))
+    # Hard daily limits that work even when no prices are configured. They protect a public demo's credits.
+    daily_run_cap: int = field(default_factory=lambda: _int("WARRANT_DAILY_RUN_CAP", 30))
+    daily_draft_cap: int = field(default_factory=lambda: _int("WARRANT_DAILY_DRAFT_CAP", 30))
     run_max_model_calls: int = field(default_factory=lambda: _int("WARRANT_RUN_MAX_MODEL_CALLS", 40))
     eval_usd_cap: float = field(default_factory=lambda: _float("WARRANT_EVAL_USD_CAP", 10.0))
     # USD per million tokens, {"model-id": [input, output]}. Costs are reported only for priced models,
@@ -58,6 +61,8 @@ class Settings:
             "portal_url": self.portal_url,
             "tavily": bool(self.tavily_api_key),
             "guest_daily_usd_cap": self.guest_daily_usd_cap,
+            "daily_run_cap": self.daily_run_cap,
+            "daily_draft_cap": self.daily_draft_cap,
             "run_max_model_calls": self.run_max_model_calls,
             "priced_models": sorted(self.prices),
         }

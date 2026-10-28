@@ -1,0 +1,9 @@
+.git
+.venv
+.wsl
+.claude
+data
+web/node_modules
+web/dist
+**/__pycache__
+*.sqlite

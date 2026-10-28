@@ -106,6 +106,10 @@ class Store:
             rows = self._q("SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,))
         return [self._run_row(r) for r in rows]
 
+    def count_since(self, table: str, since: float) -> int:
+        column = {"runs": "started_at", "warrants": "created_at"}[table]
+        return int(self._q(f"SELECT COUNT(*) AS n FROM {table} WHERE {column}>=?", (since,))[0]["n"])
+
     def spend_since(self, since: float, owner: str | None = None) -> float:
         sql = "SELECT usage FROM runs WHERE started_at>=? AND usage IS NOT NULL"
         args: tuple = (since,)

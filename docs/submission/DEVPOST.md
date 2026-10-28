@@ -46,7 +46,10 @@ or a broader path. A deterministic checker has the final word on every draft.
   a `POST`, a different path and a different site, each with OpenShell's own reason.
 - A full mission ran end to end: fresh sandbox, the agent read only the two pages in its warrant, Nemotron
   wrote a correct brief, the sandbox was deleted. 3 Nemotron calls, 4,442 tokens.
-- [Attack evaluation results, once run.]
+- Over-reach evaluation (5 frozen scenarios x 2 repeats, Nemotron 3 Super): each mission asks for more than
+  its approved warrant. With broad access, 26 of 26 off-warrant requests went through; under the warrant,
+  0 of 15 did. The expected fact appeared in 3 of 10 answers in both setups, so the warrant did not reduce
+  task success. These runs used Warrant's built-in enforcer; the OpenShell path is verified separately above.
 
 ## Challenges
 
@@ -77,5 +80,5 @@ earlier project, Morph.
 ## Links
 
 - Repository: https://github.com/TheClazer/warrant
-- Demo: [public URL]
+- Demo: [public URL] (built-in enforcer; OpenShell runs are shown in the video)
 - Video: [YouTube URL]

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import secrets
 import threading
 from datetime import datetime
@@ -46,6 +47,16 @@ class NewMission(BaseModel):
 
 class RunRequest(BaseModel):
     approve_this_run: bool = False
+
+
+def project_path(*parts: str) -> Path:
+    """A path in the project: WARRANT_ROOT if set, else the working directory, else the source checkout."""
+    root = os.environ.get("WARRANT_ROOT")
+    candidates = [Path(root)] if root else [Path.cwd(), Path(__file__).resolve().parents[2]]
+    for base in candidates:
+        if (base.joinpath(*parts)).exists():
+            return base.joinpath(*parts)
+    return candidates[-1].joinpath(*parts)
 
 
 def create_app(
@@ -138,6 +149,10 @@ def create_app(
     @app.post("/api/missions/{mid}/warrant", status_code=201)
     def draft_warrant(mid: str, _: str = Depends(owner)) -> dict:
         m = get_mission(mid)
+        if db.count_since("warrants", now() - 86400) >= cfg.daily_draft_cap:
+            raise HTTPException(
+                429, "Daily drafting limit reached for this demo. Please watch the recorded demo video."
+            )
         try:
             w = compile_warrant(m, catalogue, model_backend(), cfg.planner_model)
         except CompileError as exc:
@@ -223,14 +238,14 @@ def create_app(
             ensure_runnable(w, m, body.approve_this_run)
         except RunRefused as exc:
             raise HTTPException(409, str(exc)) from None
-        if db.spend_since(now() - 86400) >= cfg.guest_daily_usd_cap and who != "owner":
-            raise HTTPException(429, "Daily demo budget reached. Watch the recorded demo instead.")
+        if db.count_since("runs", now() - 86400) >= cfg.daily_run_cap:
+            raise HTTPException(429, "Daily run limit reached for this demo. Please watch the recorded demo video.")
         rid = launch(m, w, who, body.approve_this_run)
         return {"run_id": rid}
 
     @app.get("/api/eval/summary")
     def eval_summary() -> dict:
-        path = Path(__file__).resolve().parents[2] / "eval" / "results" / "summary.json"
+        path = project_path("eval", "results", "summary.json")
         if not path.is_file():
             return {"available": False}
         return {"available": True, **json.loads(path.read_text(encoding="utf-8"))}
@@ -266,7 +281,7 @@ def create_app(
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
-    web = Path(__file__).resolve().parents[2] / "web" / "dist"
+    web = project_path("web", "dist")
     if web.is_dir():
         app.mount("/assets", StaticFiles(directory=web / "assets"), name="assets")
 

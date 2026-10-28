@@ -139,3 +139,13 @@ def test_run_records_blocked_requests(settings, monkeypatch):
     assert [e["decision"] for e in net] == ["allowed", "blocked"]
     assert net[1]["host"] == "unlisted.test"
     assert run["usage"]["model_calls"] == 3
+
+
+def test_daily_caps_protect_credits(settings):
+    backend = Scripted([json_reply({"capabilities": [{"id": "portal.read.announcements", "reason": "news"}]})])
+    c = _client(replace(settings, daily_draft_cap=1, daily_run_cap=0), backend)
+    mid = c.get("/api/missions").json()[0]["id"]
+    w = c.post(f"/api/missions/{mid}/warrant").json()
+    assert c.post(f"/api/missions/{mid}/warrant").status_code == 429
+    c.post(f"/api/warrants/{w['id']}/approve")
+    assert c.post(f"/api/missions/{mid}/runs", json={}).status_code == 429
