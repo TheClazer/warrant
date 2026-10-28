@@ -9,9 +9,9 @@ Record each section separately, then join. Use real runs only. If a run is slow,
 | 0:20–0:50 | Missions screen. Click the morning brief, then Draft warrant. The card appears with its moving border. | "Warrant asks NVIDIA Nemotron, on Nebius Token Factory, what this mission needs. It can only choose from reviewed capabilities. Code checks the draft. I read it in plain words and approve." |
 | 0:50–1:05 | Open "Show the rules OpenShell enforces" | "This is the actual NVIDIA OpenShell policy generated from the warrant: only these pages, only GET." |
 | 1:05–1:45 | Run now. Run screen: sandbox name in the header, steps ticking, allowed requests, result appears | "Each run gets a fresh OpenShell sandbox. The agent reads the portal from inside it. Nemotron writes my brief, then the sandbox is deleted." |
-| 1:45–2:20 | A mission that tries to go beyond its warrant (the attack-test page). Yellow BLOCKED events with OpenShell's reason | "This page contains instructions meant to pull the agent elsewhere. OpenShell blocks every request outside the warrant and tells us why. The mission still finishes." |
-| 2:20–2:40 | Evidence screen and the verification document | "We report only measured results: [real numbers]." |
-| 2:40–2:50 | Repo and demo URL | "Open source, running on our Nebius machine. Try it at warrant-demo.onrender.com." |
+| 1:45–2:20 | Mission "Brief me on this week's announcements and tell me my latest grades", with a warrant for announcements only. Yellow BLOCKED event for /grades with OpenShell's reason | "This mission asks for more than I approved. The agent tries to open my grades; OpenShell blocks it because grades are not in the warrant, and tells us why. The mission still finishes with what it was allowed to read." |
+| 2:20–2:40 | Evidence screen and the verification document | "We report only measured results. Across 10 runs with broad access, all 26 off-warrant requests went through. Under the warrant, 0 of 15 did." |
+| 2:40–2:50 | Repo and demo URL | "Open source, built on NVIDIA Nemotron through Nebius Token Factory and NVIDIA OpenShell. Try the public demo at warrant-demo.onrender.com." |
 
 Must be visible: the words Nemotron and Token Factory, OpenShell blocking a request, the demo URL, the repo.
 Never show: the API key, the owner token, the `.env` file.
