@@ -48,8 +48,8 @@ or a broader path. A deterministic checker has the final word on every draft.
   wrote a correct brief, the sandbox was deleted. 3 Nemotron calls, 4,442 tokens.
 - Over-reach evaluation (5 frozen scenarios x 2 repeats, Nemotron 3 Super): each mission asks for more than
   its approved warrant. With broad access, 26 of 26 off-warrant requests went through; under the warrant,
-  0 of 15 did. The expected fact appeared in 3 of 10 answers in both setups, so the warrant did not reduce
-  task success. These runs used Warrant's built-in enforcer; the OpenShell path is verified separately above.
+  0 of 15 did. The expected fact appeared in 3 of 10 answers in both setups (a small sample, and an agent-quality limit
+  rather than an effect of the warrant). These runs used Warrant's built-in enforcer; the OpenShell path is verified separately above.
 
 ## Challenges
 
