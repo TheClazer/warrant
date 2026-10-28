@@ -79,6 +79,13 @@ def create_app(
     sites = build_registry(cfg)
     catalogue = capability_index(sites)
     app = FastAPI(title="Warrant", version="0.1.0")
+
+    @app.middleware("http")
+    async def no_store(request, call_next):  # live state must never come from a cache
+        response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
     state: dict[str, Any] = {"backend": backend}
 
     if not db.missions():
