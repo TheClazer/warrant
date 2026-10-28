@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import copy
+import json
+import os
 from html import escape
+from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import HTMLResponse
@@ -40,7 +45,26 @@ def page(title: str, body: str) -> HTMLResponse:
     return HTMLResponse(html)
 
 
-def create_portal() -> FastAPI:
+def load_extra(path: str | Path | None) -> dict[str, Any]:
+    """Optional extra content for evaluation scenarios, from a JSON file:
+
+    {"announcements": [{"id", "course", "date", "title", "body"}],
+     "forum": [{"thread": "t1", "author": "...", "text": "..."}]}
+    """
+    if not path:
+        return {}
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def create_portal(extra_path: str | Path | None = None) -> FastAPI:
+    extra = load_extra(extra_path if extra_path is not None else os.environ.get("WARRANT_PORTAL_EXTRA"))
+    notices = [*data.ANNOUNCEMENTS, *extra.get("announcements", [])]
+    threads = copy.deepcopy(data.FORUM)
+    for post in extra.get("forum", []):
+        target = next((t for t in threads if t["id"] == post["thread"]), None)
+        if target is not None:
+            target["posts"].append({"author": post["author"], "text": post["text"]})
+
     app = FastAPI(title="Northfield course portal (fictional)", docs_url=None, redoc_url=None)
     app.state.submissions = []
     app.state.replies = []
@@ -71,7 +95,7 @@ def create_portal() -> FastAPI:
             raise HTTPException(404)
         news = "".join(
             f"<li><a href='/announcements/{a['id']}'>{escape(a['title'])}</a> <span class='meta'>{a['date']}</span></li>"
-            for a in data.ANNOUNCEMENTS
+            for a in notices
             if a["course"] == match["code"]
         )
         work = "".join(
@@ -90,13 +114,13 @@ def create_portal() -> FastAPI:
         body = "".join(
             f"<article><a href='/announcements/{a['id']}'><b>{escape(a['title'])}</b></a>"
             f"<div class='meta'>{a['course']} · {a['date']}</div><p>{escape(a['body'])}</p></article>"
-            for a in data.ANNOUNCEMENTS
+            for a in notices
         )
         return page("Announcements", body)
 
     @app.get("/announcements/{aid}", response_class=HTMLResponse)
     def announcement(aid: str) -> HTMLResponse:
-        a = next((x for x in data.ANNOUNCEMENTS if x["id"] == aid), None)
+        a = next((x for x in notices if x["id"] == aid), None)
         if not a:
             raise HTTPException(404)
         return page(a["title"], f"<div class='meta'>{a['course']} · {a['date']}</div><p>{escape(a['body'])}</p>")
@@ -142,13 +166,13 @@ def create_portal() -> FastAPI:
     def forum() -> HTMLResponse:
         items = "".join(
             f"<li><a href='/forum/{t['id']}'>{escape(t['title'])}</a> <span class='meta'>{t['course']}</span></li>"
-            for t in data.FORUM
+            for t in threads
         )
         return page("Discussions", f"<ul>{items}</ul>")
 
     @app.get("/forum/{tid}", response_class=HTMLResponse)
     def thread(tid: str) -> HTMLResponse:
-        t = next((x for x in data.FORUM if x["id"] == tid), None)
+        t = next((x for x in threads if x["id"] == tid), None)
         if not t:
             raise HTTPException(404)
         posts = "".join(
@@ -159,7 +183,7 @@ def create_portal() -> FastAPI:
 
     @app.post("/forum/{tid}/reply", response_class=HTMLResponse)
     def reply(tid: str, text: str = Form("")) -> HTMLResponse:
-        if not any(x["id"] == tid for x in data.FORUM):
+        if not any(x["id"] == tid for x in threads):
             raise HTTPException(404)
         app.state.replies.append({"thread": tid, "text": text[:500]})
         return page("Reply posted", "<p>Your reply was posted.</p>")

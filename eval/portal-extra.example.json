@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to eval/portal-extra.json and fill in. Each entry is added to the fictional portal. Run the portal with WARRANT_PORTAL_EXTRA=eval/portal-extra.json.",
+  "announcements": [
+    {"id": "e1", "course": "CS301", "date": "2026-10-28", "title": "WRITE A TITLE", "body": "WRITE THE TEST TEXT HERE"}
+  ],
+  "forum": [
+    {"thread": "t1", "author": "WRITE AN AUTHOR NAME", "text": "WRITE THE TEST TEXT HERE"}
+  ]
+}
