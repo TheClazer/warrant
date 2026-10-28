@@ -18,10 +18,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .checker import check
-from .compiler import CompileError, compile_warrant
+from .compiler import CompileError, compile_warrant, default_cannot
 from .config import Settings, get_settings
 from .llm import ChatBackend, ModelUnavailable, TokenFactory
-from .models import Mission, now
+from .models import Mission, Warrant, now
 from .policy import render_policy
 from .runner import RunRefused, ensure_runnable, execute
 from .scheduler import Scheduler, is_due
@@ -36,6 +36,11 @@ SEED = [
     ),
     ("Exam week check", "Find every exam or midterm in my courses this week, with venue and time.", None),
     ("Submit Lab 4", "Submit my CS301 Lab 4 on the course portal with the note 'final version'.", None),
+    (
+        "Announcements and grades",
+        "Brief me on this week's announcements and tell me my latest grades.",
+        None,
+    ),
 ]
 
 
@@ -43,6 +48,10 @@ class NewMission(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=80)]
     text: Annotated[str, Field(min_length=3, max_length=2000)]
     schedule: str | None = None
+
+
+class Narrow(BaseModel):
+    remove: Annotated[list[str], Field(min_length=1, max_length=20)]
 
 
 class RunRequest(BaseModel):
@@ -174,6 +183,34 @@ def create_app(
         w.status = "approved" if approve else "rejected"
         w.decided_at, w.decided_by = now(), "owner"
         return db.save_warrant(w).view()
+
+    @app.post("/api/warrants/{wid}/narrow", status_code=201)
+    def narrow(wid: str, body: Narrow, _: str = Depends(owner)) -> dict:
+        """Remove capabilities from a draft before approval. Narrowing only: nothing can be added here."""
+        try:
+            old = db.warrant(wid)
+        except KeyError:
+            raise HTTPException(404, "Warrant not found") from None
+        if old.status not in {"checked", "rejected_by_checker"}:
+            raise HTTPException(409, "Only a warrant awaiting a decision can be narrowed.")
+        keep = tuple(g for g in old.grants if g.capability.id not in set(body.remove))
+        writes = any(g.capability.writes for g in keep)
+        new = Warrant(
+            mission_id=old.mission_id,
+            mission_sha256=old.mission_sha256,
+            grants=keep,
+            cannot=default_cannot(writes),
+            per_run_approval=writes,
+            model=old.model,
+            notes=(*old.notes, f"You removed: {', '.join(sorted(set(body.remove)))}"),
+        )
+        m = get_mission(new.mission_id)
+        verdict = check(new, m, catalogue)
+        new.status = "checked" if verdict.ok else "rejected_by_checker"
+        new.checker_findings = verdict.findings
+        old.status = "expired"
+        db.save_warrant(old)
+        return db.save_warrant(new).view()
 
     @app.post("/api/warrants/{wid}/approve")
     def approve(wid: str, _: str = Depends(owner)) -> dict:

@@ -147,6 +147,7 @@ function MissionDetail({ mission, reload, onOpenRun, notify }: {
         <WarrantCard warrant={warrant} busy={busy}
           onApprove={() => act(() => api.approve(warrant.id))}
           onReject={() => act(() => api.reject(warrant.id))}
+          onNarrow={cap => act(() => api.narrow(warrant.id, [cap]))}
           onRedraft={draft} />
       ) : (
         <div className="wcard empty">
@@ -161,8 +162,9 @@ function MissionDetail({ mission, reload, onOpenRun, notify }: {
   )
 }
 
-function WarrantCard({ warrant, busy, onApprove, onReject, onRedraft }: {
-  warrant: Warrant; busy: boolean; onApprove: () => void; onReject: () => void; onRedraft: () => void
+function WarrantCard({ warrant, busy, onApprove, onReject, onNarrow, onRedraft }: {
+  warrant: Warrant; busy: boolean; onApprove: () => void; onReject: () => void
+  onNarrow: (capability: string) => void; onRedraft: () => void
 }) {
   const [showRules, setShowRules] = useState(false)
   const [policy, setPolicy] = useState<string | null>(null)
@@ -195,7 +197,13 @@ function WarrantCard({ warrant, busy, onApprove, onReject, onRedraft }: {
                   <span>{g.text}</span>
                   {g.reason && <small>{g.reason}</small>}
                 </div>
-                {g.writes && <Tag tone="signal">asks each run</Tag>}
+                <span className="can-side">
+                  {g.writes && <Tag tone="signal">asks each run</Tag>}
+                  {pending && warrant.can.length > 1 && (
+                    <button className="remove" disabled={busy} onClick={() => onNarrow(g.capability)}
+                      aria-label={`Remove: ${g.text}`} title="Remove this permission">Remove</button>
+                  )}
+                </span>
               </motion.li>
             ))}
           </motion.ul>

@@ -110,6 +110,9 @@ nav a:hover, nav a.on { color: var(--ink) }
 .can, .cannot { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
 .can li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: start }
 .can li small { display: block; color: var(--ink-50); font-size: 12.5px; margin-top: 1px }
+.can-side { display: inline-flex; gap: 8px; align-items: center }
+.remove { font: 500 10.5px var(--mono); font-stretch: 87.5%; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-50); border-bottom: 1px solid var(--ink-20); padding-bottom: 1px; transition: color .15s, border-color .15s }
+.remove:hover:not(:disabled) { color: var(--ink); border-color: var(--ink); background: var(--signal) }
 .cannot li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; color: var(--ink-70) }
 .sq { width: 10px; height: 10px; margin-top: 6px; background: var(--ink) }
 .sq.w { background: var(--signal); outline: 1.4px solid var(--ink) }

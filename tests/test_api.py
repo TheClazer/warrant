@@ -31,7 +31,7 @@ def test_draft_check_approve_and_policy(settings):
     )
     c = _client(settings, backend)
     missions = c.get("/api/missions").json()
-    assert len(missions) == 3
+    assert len(missions) == 4
     mid = missions[0]["id"]
 
     w = c.post(f"/api/missions/{mid}/warrant").json()
@@ -149,3 +149,28 @@ def test_daily_caps_protect_credits(settings):
     assert c.post(f"/api/missions/{mid}/warrant").status_code == 429
     c.post(f"/api/warrants/{w['id']}/approve")
     assert c.post(f"/api/missions/{mid}/runs", json={}).status_code == 429
+
+
+def test_narrowing_removes_capabilities_and_cannot_add(settings):
+    backend = Scripted(
+        [
+            json_reply(
+                {
+                    "capabilities": [
+                        {"id": "portal.read.announcements", "reason": "a"},
+                        {"id": "portal.read.grades", "reason": "g"},
+                    ]
+                }
+            )
+        ]
+    )
+    c = _client(settings, backend)
+    mid = c.get("/api/missions").json()[0]["id"]
+    w = c.post(f"/api/missions/{mid}/warrant").json()
+    narrowed = c.post(
+        f"/api/warrants/{w['id']}/narrow", json={"remove": ["portal.read.grades", "portal.write.submit"]}
+    ).json()
+    assert [x["capability"] for x in narrowed["can"]] == ["portal.read.announcements"]
+    assert narrowed["status"] == "checked" and narrowed["fingerprint"] != w["fingerprint"]
+    assert c.post(f"/api/warrants/{w['id']}/approve").status_code == 409  # the old draft is expired
+    assert c.post(f"/api/warrants/{narrowed['id']}/approve").json()["status"] == "approved"

@@ -126,6 +126,8 @@ export const api = {
   draft: (id: string) => call<Warrant>(`/api/missions/${id}/warrant`, { method: 'POST' }),
   approve: (id: string) => call<Warrant>(`/api/warrants/${id}/approve`, { method: 'POST' }),
   reject: (id: string) => call<Warrant>(`/api/warrants/${id}/reject`, { method: 'POST' }),
+  narrow: (id: string, remove: string[]) =>
+    call<Warrant>(`/api/warrants/${id}/narrow`, { method: 'POST', body: JSON.stringify({ remove }) }),
   policy: (id: string) => call<string>(`/api/warrants/${id}/policy`),
   startRun: (id: string, approveThisRun: boolean) =>
     call<{ run_id: string }>(`/api/missions/${id}/runs`, {
