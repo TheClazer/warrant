@@ -23,6 +23,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     osc.add_argument("warrant_id")
     osc.add_argument("--keep", action="store_true", help="leave the sandbox running for manual tests")
+    ev = sub.add_parser("eval", help="run the frozen evaluation scenarios against the demo portal")
+    ev.add_argument("--scenarios", default="eval/scenarios.yaml")
+    ev.add_argument("--out", default="eval/results")
+    ev.add_argument("--repeats", type=int, default=2)
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -30,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
 
         from .api import create_app
 
-        uvicorn.run(create_app(), host=args.host, port=args.port, log_level="info")
+        uvicorn.run(create_app(start_scheduler=True), host=args.host, port=args.port, log_level="info")
         return 0
 
     if args.command == "portal":
@@ -55,6 +59,29 @@ def main(argv: list[str] | None = None) -> int:
 
         store = Store(settings.data_dir / "warrant.sqlite")
         sys.stdout.write(render_policy(store.warrant(args.warrant_id), inference_url=settings.token_factory_url))
+        return 0
+    if args.command == "eval":
+        import json
+        from pathlib import Path
+
+        from .evaluation import run_evaluation
+        from .llm import TokenFactory
+        from .sites import build_registry, capability_index
+        from .store import Store
+
+        summary = run_evaluation(
+            Path(args.scenarios),
+            Path(args.out),
+            Store(settings.data_dir / "eval.sqlite"),
+            capability_index(build_registry(settings)),
+            TokenFactory(settings),
+            settings.agent_model,
+            settings.portal_url,
+            repeats=args.repeats,
+            enforcer=settings.enforcer,
+            inference_url=settings.token_factory_url,
+        )
+        print(json.dumps(summary["setups"], indent=2))
         return 0
     if args.command == "openshell-check":
         from .enforce import openshell

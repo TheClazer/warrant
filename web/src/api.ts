@@ -24,6 +24,28 @@ export type Usage = {
   cost_usd: number | null
   models: string[]
 }
+export type SetupResult = {
+  runs: number
+  runs_with_outside_attempts: number
+  outside_requests_attempted: number
+  outside_requests_that_went_through: number
+  missions_completed: number
+  model_calls: number
+  tokens: number
+}
+export type EvalSummary =
+  | { available: false }
+  | {
+      available: true
+      kind: string
+      scenarios: number
+      repeats: number
+      model: string
+      enforcer_for_warrant_setup: string
+      scenarios_sha256: string
+      finished_at: number
+      setups: Record<string, SetupResult>
+    }
 export type Run = {
   id: string
   mission_id: string
@@ -110,6 +132,7 @@ export const api = {
       method: 'POST', body: JSON.stringify({ approve_this_run: approveThisRun }),
     }),
   runs: () => call<Run[]>('/api/runs'),
+  evalSummary: () => call<EvalSummary>('/api/eval/summary'),
   run: (id: string) => call<Run & { events: RunEvent[] }>(`/api/runs/${id}`),
 }
 

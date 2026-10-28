@@ -112,7 +112,7 @@ def execute(
             http = SandboxClient(box, on_decision)
         else:
             http = GatedClient(gate, on_decision)
-        starts = "\n".join(entry_points(warrant if setup == "warrant" else None, start_url))
+        starts = "\n".join(entry_points(warrant, start_url))
         outcome = run_agent(
             mission.text, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
         )

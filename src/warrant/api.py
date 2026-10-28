@@ -7,6 +7,7 @@ import asyncio
 import json
 import secrets
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -22,6 +23,7 @@ from .llm import ChatBackend, ModelUnavailable, TokenFactory
 from .models import Mission, now
 from .policy import render_policy
 from .runner import RunRefused, ensure_runnable, execute
+from .scheduler import Scheduler, is_due
 from .sites import build_registry, capability_index
 from .store import Store
 
@@ -47,7 +49,10 @@ class RunRequest(BaseModel):
 
 
 def create_app(
-    settings: Settings | None = None, backend: ChatBackend | None = None, store: Store | None = None
+    settings: Settings | None = None,
+    backend: ChatBackend | None = None,
+    store: Store | None = None,
+    start_scheduler: bool = False,
 ) -> FastAPI:
     cfg = settings or get_settings()
     db = store or Store(cfg.data_dir / "warrant.sqlite")
@@ -171,6 +176,43 @@ def create_app(
             raise HTTPException(404, "Warrant not found") from None
         return render_policy(w, inference_url=cfg.token_factory_url)
 
+    def launch(m: Mission, w: Any, who: str, approved_this_run: bool) -> str:
+        backend_ = model_backend()
+        rid = db.start_run(m.id, w.id, "warrant", who)
+        threading.Thread(
+            target=execute,
+            kwargs=dict(
+                store=db,
+                mission=m,
+                warrant=w,
+                start_url=sites[0].base_url,
+                backend=backend_,
+                model=cfg.agent_model,
+                approved_this_run=approved_this_run,
+                max_model_calls=cfg.run_max_model_calls,
+                owner=who,
+                run_id=rid,
+                enforcer=cfg.enforcer,
+                inference_url=cfg.token_factory_url,
+            ),
+            daemon=True,
+        ).start()
+        return rid
+
+    def scheduled_tick(at: datetime) -> None:
+        for m in db.missions():
+            w = db.latest_warrant(m.id)
+            if not m.schedule or w is None or w.status != "approved" or w.per_run_approval:
+                continue
+            last = db.runs(1, m.id)
+            last_at = datetime.fromtimestamp(last[0]["started_at"]) if last else None
+            if is_due(m.schedule, last_at, at):
+                launch(m, w, "scheduler", False)
+
+    app.state.scheduled_tick = scheduled_tick
+    if start_scheduler:
+        Scheduler(scheduled_tick).start()
+
     @app.post("/api/missions/{mid}/runs", status_code=202)
     def start_run(mid: str, body: RunRequest, who: str = Depends(owner)) -> dict:
         m = get_mission(mid)
@@ -183,28 +225,15 @@ def create_app(
             raise HTTPException(409, str(exc)) from None
         if db.spend_since(now() - 86400) >= cfg.guest_daily_usd_cap and who != "owner":
             raise HTTPException(429, "Daily demo budget reached. Watch the recorded demo instead.")
-        backend_ = model_backend()
-        start_url = sites[0].base_url
-        rid = db.start_run(m.id, w.id, "warrant", who)
-        threading.Thread(
-            target=execute,
-            kwargs=dict(
-                store=db,
-                mission=m,
-                warrant=w,
-                start_url=start_url,
-                backend=backend_,
-                model=cfg.agent_model,
-                approved_this_run=body.approve_this_run,
-                max_model_calls=cfg.run_max_model_calls,
-                owner=who,
-                run_id=rid,
-                enforcer=cfg.enforcer,
-                inference_url=cfg.token_factory_url,
-            ),
-            daemon=True,
-        ).start()
+        rid = launch(m, w, who, body.approve_this_run)
         return {"run_id": rid}
+
+    @app.get("/api/eval/summary")
+    def eval_summary() -> dict:
+        path = Path(__file__).resolve().parents[2] / "eval" / "results" / "summary.json"
+        if not path.is_file():
+            return {"available": False}
+        return {"available": True, **json.loads(path.read_text(encoding="utf-8"))}
 
     @app.get("/api/runs")
     def runs(limit: int = 30) -> list[dict]:
