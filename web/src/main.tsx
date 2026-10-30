@@ -2,92 +2,96 @@ import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { api, Status, token } from './api'
-import { Catalogue, Evidence } from './Catalogue'
-import { Missions } from './Missions'
-import { RunView } from './RunView'
+import { Landing } from './Landing'
 import './styles.css'
+import { Evidence, Missions, RunPage, Sites } from './Workspace'
 
-type View = 'missions' | 'run' | 'sites' | 'evidence'
-const NAV: [View, string][] = [['missions', 'Missions'], ['sites', 'Reviewed sites'], ['evidence', 'Evidence']]
+type Route = { view: 'landing' | 'app' | 'run' | 'sites' | 'evidence'; run?: string }
 
-function readHash(): { view: View; run?: string } {
-  const h = location.hash.slice(1)
-  if (h.startsWith('run-')) return { view: 'run', run: h.slice(4) }
-  return { view: (['missions', 'sites', 'evidence'].includes(h) ? h : 'missions') as View }
+function readHash(): Route {
+  const h = location.hash.replace(/^#\/?/, '')
+  if (h.startsWith('run/')) return { view: 'run', run: h.slice(4) }
+  if (h === 'app' || h === 'missions') return { view: 'app' }
+  if (h === 'sites') return { view: 'sites' }
+  if (h === 'evidence') return { view: 'evidence' }
+  return { view: 'landing' }
 }
+
+const NAV: [Route['view'], string, string][] = [
+  ['app', 'Missions', '#/app'],
+  ['sites', 'Reviewed sites', '#/sites'],
+  ['evidence', 'Evidence', '#/evidence'],
+]
 
 function App() {
   const [route, setRoute] = useState(readHash)
+  useEffect(() => {
+    const on = () => {
+      const next = readHash()
+      setRoute(next)
+      if (location.hash === '' || location.hash.startsWith('#/')) window.scrollTo({ top: 0 })
+    }
+    addEventListener('hashchange', on)
+    return () => removeEventListener('hashchange', on)
+  }, [])
+  return (
+    <MotionConfig reducedMotion="user">
+      {route.view === 'landing' ? <Landing /> : <Shell route={route} />}
+    </MotionConfig>
+  )
+}
+
+function Shell({ route }: { route: Route }) {
   const [status, setStatus] = useState<Status | null>(null)
+  const [slow, setSlow] = useState(false)
   const [toast, setToast] = useState('')
   const [askToken, setAskToken] = useState(false)
 
   useEffect(() => {
-    const on = () => { setRoute(readHash()); window.scrollTo({ top: 0 }) }
-    addEventListener('hashchange', on)
-    return () => removeEventListener('hashchange', on)
-  }, [])
-  useEffect(() => { api.status().then(setStatus).catch(() => setStatus(null)) }, [route.view])
+    const timer = setTimeout(() => setSlow(true), 3000)
+    api.status().then(setStatus).catch(() => setStatus(null)).finally(() => { clearTimeout(timer); setSlow(false) })
+    return () => clearTimeout(timer)
+  }, [route.view])
 
-  const go = (view: View, run?: string) => { location.hash = run ? `run-${run}` : view }
   const notify = useCallback((msg: string) => {
     setToast(msg)
     if (/token/i.test(msg)) setAskToken(true)
-    setTimeout(() => setToast(t => (t === msg ? '' : t)), 4200)
+    setTimeout(() => setToast(t => (t === msg ? '' : t)), 4500)
   }, [])
+  const active = route.view === 'run' ? 'app' : route.view
 
   return (
-    <MotionConfig reducedMotion="user">
-      <header className="top">
-        <div className="top-in">
-          <a className="word" href="#missions">WARRANT</a>
-          <nav aria-label="Sections">
-            {NAV.map(([v, label]) => (
-              <a key={v} href={`#${v}`} className={route.view === v || (v === 'missions' && route.view === 'run') ? 'on' : ''}>
-                {label}
-                {(route.view === v || (v === 'missions' && route.view === 'run')) && <motion.i layoutId="nav-mark" className="nav-mark" />}
-              </a>
-            ))}
-          </nav>
-          <div className="sys mono">
-            {status ? <>
-              <span className={`dot ${status.live_model ? 'ok' : ''}`} />
-              <span>{status.live_model ? 'Nemotron live' : 'Model offline'}</span>
-              <span className="sep" />
-              <span>{status.enforcer === 'openshell' ? 'OpenShell enforcing' : 'Local enforcer'}</span>
-            </> : <span>Connecting…</span>}
-            {status?.auth_required && (
-              <button className="link" onClick={() => setAskToken(true)}>{token.get() ? 'Owner' : 'Sign in'}</button>
-            )}
-          </div>
+    <div className="shell">
+      <aside className="side">
+        <a className="mark" href="#/">WARRANT</a>
+        <nav aria-label="Workspace">
+          {NAV.map(([v, label, href]) => (
+            <a key={v} href={href} className={active === v ? 'on' : ''} aria-current={active === v ? 'page' : undefined}>
+              {active === v && <motion.i layoutId="side-mark" />}{label}
+            </a>
+          ))}
+        </nav>
+        <dl className="side-sys">
+          <div><dt>Model</dt><dd><span className={`dot ${status?.live_model ? 'live' : ''}`} />{status ? (status.live_model ? 'Nemotron 3 Super' : 'Offline') : 'Connecting…'}</dd></div>
+          <div><dt>Enforcer</dt><dd>{status ? (status.enforcer === 'openshell' ? 'NVIDIA OpenShell' : 'Built-in') : '…'}</dd></div>
+          <div><dt>Portal</dt><dd>Fictional demo</dd></div>
+        </dl>
+        {status?.auth_required && <button className="text-btn on-dark" onClick={() => setAskToken(true)}>{token.get() ? 'Owner signed in' : 'Owner sign-in'}</button>}
+      </aside>
+      <main className="main">
+        {slow && !status && <p className="waking mono">Waking the demo server. This can take up to a minute on the free plan.</p>}
+        <div key={route.view + (route.run ?? '')} className="enter">
+          {route.view === 'app' && <Missions notify={notify} />}
+          {route.view === 'run' && route.run && <RunPage runId={route.run} portal={status?.portal_url} />}
+          {route.view === 'sites' && <Sites />}
+          {route.view === 'evidence' && <Evidence />}
         </div>
-      </header>
-
-      <main className="shell">
-        {/* Page changes fade in only; never wait for an exit animation, which can stall in a background tab. */}
-        <motion.div key={route.view + (route.run ?? '')} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}>
-            {route.view === 'missions' && <Missions onOpenRun={id => go('run', id)} notify={notify} />}
-            {route.view === 'run' && route.run && <RunView runId={route.run} onBack={() => go('missions')} />}
-            {route.view === 'sites' && <Catalogue />}
-            {route.view === 'evidence' && <Evidence />}
-        </motion.div>
       </main>
-
-      <footer className="foot mono">
-        <span>Planner {status?.planner_model ?? '…'} · agent {status?.agent_model ?? '…'} · {status?.provider ?? 'Nebius Token Factory'}</span>
-        <span>Fictional demo portal. No real accounts.</span>
-      </footer>
-
       <AnimatePresence>
-        {toast && (
-          <motion.div className="toast" role="status" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}>
-            {toast}
-          </motion.div>
-        )}
+        {toast && <motion.div className="toast" role="status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{toast}</motion.div>}
       </AnimatePresence>
       <AnimatePresence>{askToken && <TokenDialog close={() => setAskToken(false)} />}</AnimatePresence>
-    </MotionConfig>
+    </div>
   )
 }
 
@@ -96,16 +100,17 @@ function TokenDialog({ close }: { close: () => void }) {
   return (
     <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onMouseDown={e => e.target === e.currentTarget && close()}>
-      <motion.form className="dialog" role="dialog" aria-modal="true" aria-labelledby="tok-h"
-        initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+      <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="tok-h"
         onSubmit={e => { e.preventDefault(); token.set(value.trim()); close() }}>
         <h2 id="tok-h">Owner sign-in</h2>
-        <p>Drafting, approving and running missions needs the owner token set on the server. It stays in this tab only.</p>
-        <label htmlFor="tok" className="eyebrow">Owner token</label>
+        <p>Drafting, approving and running need the owner token set on the server. It stays in this tab.</p>
+        <label htmlFor="tok" className="label">Owner token</label>
         <input id="tok" type="password" autoComplete="off" value={value} onChange={e => setValue(e.target.value)} />
-        <div className="row"><button className="btn" disabled={value.trim().length < 16}>Sign in</button>
-          <button type="button" className="btn ghost" onClick={close}>Cancel</button></div>
-      </motion.form>
+        <div className="row">
+          <button className="btn" disabled={value.trim().length < 16}>Sign in</button>
+          <button type="button" className="btn ghost" onClick={close}>Cancel</button>
+        </div>
+      </form>
     </motion.div>
   )
 }
