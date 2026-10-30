@@ -79,8 +79,11 @@ def _host_path(path: Path) -> str:
 
 
 def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str]:
+    # Output is parsed below, so colour codes must stay out of it whatever the caller's terminal asks for.
+    env = {k: v for k, v in os.environ.items() if k != "FORCE_COLOR"} | {"NO_COLOR": "1"}
     return subprocess.run(
         [*cli(), *args],
+        env=env,
         capture_output=True,
         text=True,
         encoding="utf-8",

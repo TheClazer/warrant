@@ -34,3 +34,21 @@ def test_ignores_non_decision_lines():
 
 def test_sandbox_names_fit_openshell_limit():
     assert all(len(sandbox_name()) <= MAX_NAME for _ in range(50))
+
+
+def test_openshell_output_never_carries_colour_codes(monkeypatch):
+    import subprocess
+
+    from warrant.enforce import openshell
+
+    seen = {}
+
+    def fake_run(*_, env=None, **__):
+        seen.update(env)
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.setattr(openshell.subprocess, "run", fake_run)
+    monkeypatch.setattr(openshell, "cli", lambda: ["openshell"])
+    openshell._run(["status"])
+    assert "FORCE_COLOR" not in seen and seen["NO_COLOR"] == "1"

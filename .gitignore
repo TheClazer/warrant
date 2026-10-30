@@ -14,3 +14,4 @@ web/dist/
 eval/results/runs/
 .claude/
 .wsl/
+docs/submission/*.mp4

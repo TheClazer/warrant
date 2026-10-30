@@ -48,3 +48,11 @@ def test_guard_restores_the_environment(monkeypatch):
         assert "NO_PROXY" not in os.environ
     assert os.environ["HTTPS_PROXY"] == "http://mine:1"
     assert os.environ["NO_PROXY"] == "x"
+
+
+def test_proof_still_works_when_you_have_your_own_sites(tmp_path, monkeypatch):
+    from warrant.sites import add_site
+
+    monkeypatch.setenv("WARRANT_SITES", str(tmp_path / "sites.yaml"))
+    add_site("wiki", "https://wiki.example.com", ["/pages"], [])
+    assert held(run_proof())

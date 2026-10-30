@@ -7,6 +7,7 @@ import { Answer, ago, Skeleton, Status, Tag } from './ui'
 type Notify = (msg: string) => void
 const HINT_TITLE = 'Announcements and grades'
 const GRADES = 'portal.read.grades'
+const short = (plain: string) => plain.replace(' (asks you every run)', '').replace(/ on the course portal$/, '').replace(/ on the course portal/, '')
 const SHOWS: Record<string, string> = {
   [HINT_TITLE]: 'The clearest one to start with. Take away a permission and watch the agent get stopped when it reaches for it.',
   'Morning course brief': 'A job that runs by itself every day. It only reads, so it never has to ask you.',
@@ -56,7 +57,7 @@ export function Missions({ notify }: { notify: Notify }) {
         </ul>
       </aside>
       <section className="detail">
-        {demo && <p className="scenario"><b>You're in a safe demo.</b> The course portal is made up, so no real data is at risk. On your own machine you can point Warrant at <a href="#/use">real sites</a>. A real AI agent (NVIDIA Nemotron) will do a job on it, and Warrant decides what it may touch. It runs on our server with Warrant's built-in enforcer, not OpenShell. <a href="#/use">Run it on your machine</a>.</p>}
+        {demo && <p className="scenario"><b>Safe demo.</b> The course portal is made up, and this runs on our server with Warrant's built-in enforcer, not OpenShell. <a href="#/use">Use it on your real sites</a>.</p>}
         {current && (
           <div key={current.id} className="enter">
             <MissionDetail mission={current} everything={everything} reload={load} notify={notify} />
@@ -152,7 +153,7 @@ function MissionDetail({ mission, everything, reload, notify }: { mission: Missi
             <span className="label">Without Warrant</span>
             <h3>An agent with your access could do all of this:</h3>
             <ul className="all-caps">
-              {everything.map(c => <li key={c.id}><span className="sq o" />{c.plain.replace(' (asks you every run)', '')}</li>)}
+              {everything.map(c => <li key={c.id}><span className="sq o" />{short(c.plain)}</li>)}
               <li><span className="sq o" />Reach any other website</li>
             </ul>
           </div>
@@ -226,7 +227,7 @@ function WarrantCard({ warrant, everything, hint, busy, onApprove, onReject, onN
             {warrant.can.map(g => (
               <li key={g.capability} className="grant">
                 <span className={`sq ${g.writes ? 'w' : ''}`} />
-                <div><span>{g.text.replace(' (asks you every run)', '')}</span>{g.reason && <small>{g.reason}</small>}</div>
+                <div><span>{short(g.text)}</span>{g.reason && <small>{g.reason}</small>}</div>
                 {g.writes && <Tag tone="signal">asks each run</Tag>}
                 {pending && warrant.can.length > 1 && (
                   <button className="remove" disabled={busy} onClick={() => onNarrow(g.capability)} aria-label={`Remove: ${g.text}`}>Remove</button>
@@ -238,7 +239,7 @@ function WarrantCard({ warrant, everything, hint, busy, onApprove, onReject, onN
         <div>
           <span className="label">Without Warrant it could also</span>
           <ul className="taken">
-            {takenAway.map(c => <li key={c.id} className="grant muted"><span className="sq o" /><div>{c.plain.replace(' (asks you every run)', '')}</div></li>)}
+            {takenAway.map(c => <li key={c.id} className="grant muted"><span className="sq o" /><div>{short(c.plain)}</div></li>)}
             <li className="grant muted"><span className="sq o" /><div>Reach any other website</div></li>
           </ul>
         </div>
@@ -365,7 +366,7 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
         <p className="mem-used">Used memory: {Number(memoryUsed.notes)} note{Number(memoryUsed.notes) === 1 ? '' : 's'}{memoryUsed.last ? ' and its last answer to this job' : ''}. It grants no permissions. <a href="#/memory">See what it knows</a></p>
       )}
 
-      {done && (
+      {done && !run.result?.error && !events.some(e => e.kind === 'error') && (
         <section className="changed enter">
           <span className="label">What changed because of Warrant</span>
           <div className="changed-grid">

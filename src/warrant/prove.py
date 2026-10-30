@@ -105,7 +105,7 @@ def run_proof() -> dict[str, Outcome]:
     serve(uvicorn.Server(uvicorn.Config(portal_app, host="127.0.0.1", port=port, log_level="warning")))
     portal = f"http://127.0.0.1:{port}"
 
-    catalogue = capability_index(build_registry(Settings(portal_url=portal)))
+    catalogue = capability_index(build_registry(Settings(portal_url=portal, include_demo=True)))
     warrant = Warrant(
         mission_id="prove",
         mission_sha256="prove",

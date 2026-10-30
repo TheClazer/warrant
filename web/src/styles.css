@@ -558,3 +558,10 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .two p { margin: 0; color: var(--i70) }
 .remembers { padding-bottom: 56px }
 @media (max-width: 960px) { .two { grid-template-columns: 1fr; gap: 18px } .skills li { flex-direction: column; align-items: start } }
+
+.taken { gap: 6px !important; margin-top: 8px !important }
+.taken .grant { font-size: 14px; color: var(--i50) }
+.grants { align-items: start }
+.card { gap: 13px }
+.mission { gap: 11px }
+.scenario { margin-bottom: 16px; padding: 8px 12px; font-size: 13.5px }

@@ -31,7 +31,8 @@ PORTAL_PORT = 8201  # fixed, so a warrant saved as a skill still matches on the 
 
 
 def _paint(code: str, text: str) -> str:
-    return f"\033[{code}m{text}\033[0m" if sys.stdout.isatty() and "NO_COLOR" not in os.environ else text
+    wanted = sys.stdout.isatty() or "FORCE_COLOR" in os.environ
+    return f"\033[{code}m{text}\033[0m" if wanted and "NO_COLOR" not in os.environ else text
 
 
 def bold(text: str) -> str:
@@ -166,6 +167,9 @@ def _follow(store: Store, run_id: str, portal_host: str, worker: threading.Threa
 
 
 def _report(events: list[dict], portal_host: str) -> None:
+    if any(e["kind"] == "error" for e in events):
+        print(blocked("\nThe run stopped with an error, so there is nothing to compare."))
+        return
     network = [e for e in events if e["kind"] == "network"]
     stopped = [e for e in network if e["decision"] == "blocked"]
     answer = next((e for e in events if e["kind"] == "answer"), None)

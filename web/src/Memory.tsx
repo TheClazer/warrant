@@ -74,7 +74,7 @@ export function MemoryPage({ notify }: { notify: (msg: string) => void }) {
         <ul className="mem-list">
           {memory?.map(m => (
             <li key={m.id} className="enter">
-              <div><span className="label">{LABELS[m.kind] ?? m.kind} · {ago(m.created_at)}</span><p>{m.text}</p></div>
+              <div><span className="label">{LABELS[m.kind] ?? m.kind} · {ago(m.created_at)}</span><p>{m.kind === 'last' ? m.text.replace(/[*`#|]|-{2,}/g, ' ').replace(/\s+/g, ' ').trim() : m.text}</p></div>
               <button className="text-btn" onClick={() => act(() => api.forget(m.id))}>Forget</button>
             </li>
           ))}
