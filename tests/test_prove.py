@@ -56,3 +56,24 @@ def test_proof_still_works_when_you_have_your_own_sites(tmp_path, monkeypatch):
     monkeypatch.setenv("WARRANT_SITES", str(tmp_path / "sites.yaml"))
     add_site("wiki", "https://wiki.example.com", ["/pages"], [])
     assert held(run_proof())
+
+
+def test_token_factory_retries_when_overloaded(monkeypatch):
+    from dataclasses import replace
+
+    from warrant.config import Settings
+    from warrant.llm import TokenFactory
+
+    monkeypatch.setattr("warrant.llm.time.sleep", lambda _: None)
+    replies = [529, 529, 200]
+
+    def respond(_: httpx.Request) -> httpx.Response:
+        code = replies.pop(0)
+        if code != 200:
+            return httpx.Response(code)
+        body = {"choices": [{"message": {"role": "assistant", "content": "ok"}}], "usage": {}}
+        return httpx.Response(200, json=body)
+
+    backend = TokenFactory(replace(Settings(), nebius_api_key="test"), transport=httpx.MockTransport(respond))
+    assert backend.chat("m", [{"role": "user", "content": "hi"}]).content == "ok"
+    assert replies == []

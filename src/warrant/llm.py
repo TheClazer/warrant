@@ -130,14 +130,14 @@ class TokenFactory:
             body["response_format"] = {"type": "json_object"}
         started = time.perf_counter()
         last_error = ""
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 response = self.client.post("/chat/completions", json=body)
             except httpx.HTTPError as exc:
                 last_error = type(exc).__name__
                 time.sleep(1.5 * (attempt + 1))
                 continue
-            if response.status_code in {429, 500, 502, 503, 504}:
+            if response.status_code in {429, 500, 502, 503, 504, 529}:
                 last_error = f"HTTP {response.status_code}"
                 time.sleep(2.0 * (attempt + 1))
                 continue
