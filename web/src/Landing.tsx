@@ -46,9 +46,9 @@ export function Landing() {
       <ClickSpark sparkColor="#FFC629" sparkSize={12} sparkRadius={26} sparkCount={9} duration={450}>
       <header className="hero">
         <div className="hero-bg" aria-hidden="true">
-          <GradientASCII colors={['#3a2b00', '#B27700', '#FFC629', '#FFE9A8']} shape="horizon" cellSize={12} density={0.85}
-            glyphOpacity={0.95} gradientOpacity={0.85} glow={0.35} flicker={0.2} flow={0.55} speed={0.8} grain={0.05}
-            dpr={1} fontFamily='"Martian Mono", ui-monospace, monospace' clickEffect="wave" />
+          <GradientASCII colors={['#2a1f00', '#7a5600', '#D79E10', '#FFC629']} shape="horizon" cellSize={12} density={0.85}
+            glyphOpacity={0.8} gradientOpacity={0.6} glow={0.35} flicker={0.2} flow={0.55} speed={0.8} grain={0.05}
+            intro={false} dpr={1} fontFamily='"Martian Mono", ui-monospace, monospace' clickEffect="wave" />
         </div>
         <nav className="lnav wrap" aria-label="Main">
           <a className="mark" href="#/">WARRANT</a>
@@ -85,7 +85,7 @@ export function Landing() {
           </div>
         </div>
         <div className="strip" aria-hidden="true">
-          <LogoLoop logos={STRIP} speed={46} gap={44} logoHeight={22} pauseOnHover={false} fadeOut={false} />
+          <LogoLoop logos={STRIP} speed={46} gap={44} logoHeight={13} pauseOnHover={false} fadeOut={false} />
         </div>
       </header>
 

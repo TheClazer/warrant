@@ -460,3 +460,6 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .call-chip[data-status='error'] .call-chip__glyph[data-state='in']::before { content: '\00d7'; font: 700 17px/1 var(--sans) }
 .stamp-in { animation: stamp .18s ease-out both }
 @keyframes stamp { from { opacity: 0; transform: scale(1.5) rotate(-6deg) } }
+
+.hero-bg::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(20, 21, 24, .72), rgba(20, 21, 24, 0) 26%) }
+.eyebrow { display: table; padding: 3px 8px; background: var(--ink); }
