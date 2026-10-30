@@ -565,3 +565,42 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .card { gap: 13px }
 .mission { gap: 11px }
 .scenario { margin-bottom: 16px; padding: 8px 12px; font-size: 13.5px }
+
+/* Nebius and NVIDIA */
+.logo { height: 1em; width: auto; flex: none; display: inline-block; vertical-align: -.12em }
+.lnav .mark { display: none }
+.hack-badge { display: inline-flex; align-items: center; gap: 9px; font: 500 11px var(--mono); font-stretch: 87.5%; line-height: 1.3 }
+.hack-logos { display: inline-flex; align-items: center; gap: 5px; font-size: 16px; color: var(--signal) }
+.hack-logos i { font: 500 11px var(--mono); color: inherit; opacity: .7 }
+.lnav .hack-badge { margin-right: auto; color: var(--paper); background: rgba(20, 21, 24, .72); padding: 6px 10px }
+.side .hack-badge { align-items: flex-start; flex-direction: column; gap: 5px; padding-top: 12px; border-top: 1px solid var(--d15); color: var(--d70); font-size: 10px }
+.side-sys dd .logo { font-size: 13px; color: var(--signal) }
+.powered-sec { padding-bottom: 56px }
+.pw-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 36px; background: var(--i20); box-shadow: 0 0 0 1px var(--i20) }
+.pw-card { display: flex; flex-direction: column; background: var(--white); padding: 24px }
+.pw-logo { font-size: 24px; height: 30px }
+.pw-card h3 { font-size: 22px; margin: 18px 0 8px }
+.pw-card p { margin: 0 0 16px; color: var(--i70) }
+.pw-card code { margin-top: auto; padding: 5px 8px; background: var(--ink); color: var(--signal); font-size: 11.5px; overflow-wrap: anywhere }
+.drafted { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 0; font-size: 13.5px; color: var(--i70) }
+.drafted .logo { font-size: 15px; color: var(--ink) }
+.drafted .logo:not(:first-child) { margin-left: 4px }
+.powered { margin-top: 18px; padding: 14px; background: var(--white); box-shadow: inset 0 0 0 1px var(--i12) }
+.powered-by { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 10px; font-size: 13.5px; font-weight: 600 }
+.powered-by span { display: inline-flex; align-items: center; gap: 6px }
+.powered-by .logo { font-size: 15px }
+.powered table { font-size: 13px }
+.powered th { font-size: 9.5px; padding-right: 8px }
+.powered td { padding: 5px 8px 5px 0; font-variant-numeric: tabular-nums }
+@media (max-width: 960px) { .pw-cards { grid-template-columns: 1fr } }
+@media (max-width: 720px) { .lnav .hack-badge > span:last-child { display: none } }
+
+/* the track brief */
+.brief-sec { padding-bottom: 40px }
+.brief { margin: 28px 0 0; border-top: 1px solid var(--ink) }
+.brief > div { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; padding: 10px 8px; border-bottom: 1px solid var(--i12); transition: background .15s }
+.brief > div:hover { background: var(--signal) }
+.brief dt { font-weight: 700; font-stretch: 105% }
+.brief dd { margin: 0; color: var(--i70) }
+.brief > div:hover dd { color: var(--ink) }
+@media (max-width: 720px) { .brief > div { grid-template-columns: 1fr; gap: 2px } }

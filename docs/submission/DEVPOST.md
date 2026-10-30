@@ -36,6 +36,10 @@ It works beyond the demo portal: `warrant site add` lists a real site or API, wi
 site, and the fictional portal then goes away. It also keeps a small memory (your notes, permissions you removed, its last answer) and reusable skills (a job
 saved with its approved warrant). Neither can widen a warrant.
 
+Against the Personal AI brief: approved read-only jobs run on a schedule while Warrant runs, memory and skills stay on your
+machine, the agent uses only the sites you list, Nemotron 3 Super is the NVIDIA model, OpenShell secures each run, and Nebius
+Token Factory serves it. We did not use NemoClaw, Hermes Agent or Nebius Serverless.
+
 ## How we built it
 
 - **NVIDIA Nemotron 3 Super** (`nvidia/nemotron-3-super-120b-a12b`) on **Nebius Token Factory** drafts warrants

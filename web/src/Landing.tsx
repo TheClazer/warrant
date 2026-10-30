@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, EvalSummary } from './api'
+import { HackathonBadge, NebiusWord, NvidiaWord } from './Logos'
 import { Playground } from './Playground'
 import ClickSpark from './rb/ClickSpark.jsx'
 import DecryptedText from './rb/DecryptedText.jsx'
@@ -36,6 +37,18 @@ const STRIP = [
   node: <span className={`strip-item ${d === 'BLOCKED' ? 'bad' : ''}`}><b>{d}</b> {r}</span>,
 }))
 
+const BRIEF = [
+  ['Always on', 'Approved read-only jobs run by themselves on a schedule, for as long as Warrant is running.'],
+  ['Under your control', 'Your sites, memory and skills stay in a folder on your machine. The pages a job reads go to the model on Nebius.'],
+  ['Persistent memory', 'Your notes, the permissions you removed and its last answer carry over to the next run.'],
+  ['Reusable skills', 'Save an approved job and run it again by name, with the same warrant.'],
+  ['Tools you choose', 'The agent can only ever use the sites and APIs you list.'],
+  ['Daily workflows', 'It reads, submits and posts on those sites, and asks you each time before it changes anything.'],
+  ['NVIDIA open model', 'Nemotron 3 Super plans the permissions and drives the agent.'],
+  ['NVIDIA OpenShell', 'Enforces each warrant in its own sandbox on your machine.'],
+  ['Nebius', 'Token Factory serves every model call.'],
+]
+
 export function Landing() {
   const [evalData, setEval] = useState<EvalSummary | null>(null)
   useEffect(() => { api.evalSummary().then(setEval).catch(() => setEval({ available: false })) }, [])
@@ -52,6 +65,7 @@ export function Landing() {
         </div>
         <nav className="lnav wrap" aria-label="Main">
           <a className="mark" href="#/">WARRANT</a>
+          <HackathonBadge />
           <div className="lnav-links mono">
             <a href="#examples" onClick={jump('examples')}>Examples</a>
             <a href="#try" onClick={jump('try')}>Try it</a>
@@ -133,6 +147,43 @@ export function Landing() {
         </Reveal>
       </section>
 
+      <section id="brief" className="wrap sec brief-sec">
+        <Reveal>
+          <span className="label">Your own personal AI</span>
+          <h2>An assistant that works for you, on your terms.</h2>
+          <dl className="brief">
+            {BRIEF.map(([name, what]) => <div key={name}><dt>{name}</dt><dd>{what}</dd></div>)}
+          </dl>
+        </Reveal>
+      </section>
+
+      <section id="powered" className="wrap sec powered-sec">
+        <Reveal>
+          <span className="label">What does the work</span>
+          <h2>NVIDIA decides and enforces. Nebius serves every call.</h2>
+          <div className="pw-cards">
+            <article className="pw-card">
+              <div className="pw-logo"><NvidiaWord /></div>
+              <h3>Nemotron 3 Super</h3>
+              <p>Reads each job, picks the fewest permissions from your list, and drives the agent.</p>
+              <code>nvidia/nemotron-3-super-120b-a12b</code>
+            </article>
+            <article className="pw-card">
+              <div className="pw-logo"><NebiusWord /></div>
+              <h3>Token Factory</h3>
+              <p>Serves every model call. Each run shows the model, tokens and time for every call it made.</p>
+              <code>api.tokenfactory.nebius.com/v1</code>
+            </article>
+            <article className="pw-card">
+              <div className="pw-logo"><NvidiaWord /></div>
+              <h3>OpenShell</h3>
+              <p>Turns your warrant into a sandbox policy and enforces it when you run Warrant on your machine. This website uses the built-in enforcer.</p>
+              <code>enforcement: enforce</code>
+            </article>
+          </div>
+        </Reveal>
+      </section>
+
       <section id="proof" className="band">
         <div className="wrap sec">
           <Reveal>
@@ -186,14 +237,6 @@ export function Landing() {
         </Reveal>
       </section>
 
-      <section className="wrap stack">
-        <span className="label">Built with</span>
-        <ul>
-          <li><b>NVIDIA Nemotron 3 Super</b><small>Drafts warrants, drives the agent</small></li>
-          <li><b>Nebius Token Factory</b><small>Serves every model call</small></li>
-          <li><b>NVIDIA OpenShell</b><small>Enforces each warrant</small></li>
-        </ul>
-      </section>
 
       <section className="closer">
         <div className="wrap closer-in">
@@ -206,6 +249,7 @@ export function Landing() {
         <span>This website's app is a shared demo with a fictional portal and the built-in enforcer.</span>
         <span>For real use, run it on your machine with your own sites and OpenShell.</span>
         <a href={REPO} target="_blank" rel="noreferrer">Apache-2.0</a>
+        <span>Nebius and NVIDIA logos belong to their owners. Warrant is a hackathon entry, not a Nebius or NVIDIA product.</span>
       </footer>
       </ClickSpark>
     </div>
