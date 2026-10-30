@@ -1,11 +1,18 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { api, EvalSummary, Mission, Run, RunEvent, Site, streamRun, Warrant } from './api'
+import { api, Capability, EvalSummary, Mission, Run, RunEvent, Site, streamRun, Warrant } from './api'
 import CallChip from './rb/CallChip.jsx'
 import { Answer, ago, Skeleton, Status, Tag } from './ui'
 
 type Notify = (msg: string) => void
 const HINT_TITLE = 'Announcements and grades'
+const GRADES = 'portal.read.grades'
+const SHOWS: Record<string, string> = {
+  [HINT_TITLE]: 'The clearest one to start with. Take away a permission and watch the agent get stopped when it reaches for it.',
+  'Morning course brief': 'A job that runs by itself every day. It only reads, so it never has to ask you.',
+  'Exam week check': 'A one-off question. See how little access it takes to answer it.',
+  'Submit Lab 4': 'This job changes something, so Warrant asks you again every time it runs.',
+}
 
 /* ---------- Missions ---------- */
 
@@ -13,6 +20,8 @@ export function Missions({ notify }: { notify: Notify }) {
   const [missions, setMissions] = useState<Mission[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [composing, setComposing] = useState(false)
+  const [everything, setEverything] = useState<Capability[]>([])
+  useEffect(() => { api.catalogue().then(sites => setEverything(sites.flatMap(x => x.capabilities))).catch(() => {}) }, [])
 
   const load = useCallback(async () => {
     const list = await api.missions()
@@ -26,7 +35,7 @@ export function Missions({ notify }: { notify: Notify }) {
     <div className="split-view">
       <aside className="list">
         <div className="list-h">
-          <h2>Missions</h2>
+          <h2>Jobs for the agent</h2>
           <button className="text-btn" onClick={() => setComposing(c => !c)}>{composing ? 'Cancel' : '+ New'}</button>
         </div>
         <AnimatePresence initial={false}>
@@ -45,9 +54,10 @@ export function Missions({ notify }: { notify: Notify }) {
         </ul>
       </aside>
       <section className="detail">
+        <p className="scenario"><b>You're in a safe demo.</b> Pretend you're a student with a fictional course portal. A real AI agent will do a job on it, and Warrant decides what it may touch. No real accounts are involved.</p>
         {current && (
           <div key={current.id} className="enter">
-            <MissionDetail mission={current} reload={load} notify={notify} />
+            <MissionDetail mission={current} everything={everything} reload={load} notify={notify} />
           </div>
         )}
       </section>
@@ -72,7 +82,7 @@ function NewMission({ onDone, notify }: { onDone: (m: Mission) => void; notify: 
     <motion.form className="new" onSubmit={submit} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
       <label htmlFor="nm-t" className="label">Name</label>
       <input id="nm-t" value={title} maxLength={80} onChange={e => setTitle(e.target.value)} placeholder="Weekly grades digest" />
-      <label htmlFor="nm-x" className="label">What should the agent do?</label>
+      <label htmlFor="nm-x" className="label">What should the agent do on the portal?</label>
       <textarea id="nm-x" rows={3} value={text} onChange={e => setText(e.target.value)} placeholder="Read my grades and tell me what changed." />
       <button className="btn" disabled={busy || !ok}>Save mission</button>
     </motion.form>
@@ -82,7 +92,7 @@ function NewMission({ onDone, notify }: { onDone: (m: Mission) => void; notify: 
 function Stepper({ step }: { step: number }) {
   return (
     <ol className="stepper" aria-label="Progress">
-      {['Draft', 'Review', 'Run'].map((name, i) => (
+      {['See what it needs', 'Decide', 'Run and compare'].map((name, i) => (
         <li key={name} className={i === step ? 'on' : i < step ? 'past' : ''} aria-current={i === step ? 'step' : undefined}>
           <span>{i + 1}</span>{name}
         </li>
@@ -91,7 +101,7 @@ function Stepper({ step }: { step: number }) {
   )
 }
 
-function MissionDetail({ mission, reload, notify }: { mission: Mission; reload: () => Promise<void>; notify: Notify }) {
+function MissionDetail({ mission, everything, reload, notify }: { mission: Mission; everything: Capability[]; reload: () => Promise<void>; notify: Notify }) {
   const [warrant, setWarrant] = useState<Warrant | null>(mission.warrant)
   const [drafting, setDrafting] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -125,21 +135,32 @@ function MissionDetail({ mission, reload, notify }: { mission: Mission; reload: 
     <div className="mission">
       <Stepper step={step} />
       <h1>{mission.title}</h1>
-      <p className="mission-text">{mission.text}</p>
+      <p className="mission-text">“{mission.text}”</p>
+      {SHOWS[mission.title] && <p className="shows">{SHOWS[mission.title]}</p>}
       {mission.schedule && <p className="sched mono">Runs on schedule: {mission.schedule}</p>}
 
       {drafting ? (
         <div className="card pending"><span className="beam" aria-hidden="true" />
-          <p className="next"><b className="shimmer">Nemotron is drafting the smallest warrant for this mission.</b></p>
+          <p className="next"><b className="shimmer">NVIDIA Nemotron is working out the least this job needs.</b></p>
           <Skeleton lines={4} />
         </div>
       ) : !warrant || status === 'rejected' || status === 'expired' ? (
         <div className="card">
-          <p className="next"><b>Start here.</b> Nemotron drafts the minimum access this mission needs. Nothing runs until you approve it.</p>
-          <button className="btn signal" onClick={draft}>Draft warrant</button>
+          <div className="before">
+            <span className="label">Without Warrant</span>
+            <h3>An agent with your access could do all of this:</h3>
+            <ul className="all-caps">
+              {everything.map(c => <li key={c.id}><span className="sq o" />{c.plain.replace(' (asks you every run)', '')}</li>)}
+              <li><span className="sq o" />Reach any other website</li>
+            </ul>
+          </div>
+          <div className="before-next">
+            <p><b>A warrant is a permission slip for one job.</b> Ask the AI what this job actually needs. Nothing runs yet, and you decide after.</p>
+            <button className="btn signal" onClick={draft}>See what this job needs</button>
+          </div>
         </div>
       ) : (
-        <WarrantCard warrant={warrant} busy={busy}
+        <WarrantCard warrant={warrant} everything={everything} hint={mission.title === HINT_TITLE} busy={busy}
           onApprove={() => act(() => api.approve(warrant.id))}
           onReject={() => act(() => api.reject(warrant.id))}
           onNarrow={cap => act(() => api.narrow(warrant.id, [cap]))}
@@ -154,7 +175,8 @@ function MissionDetail({ mission, reload, notify }: { mission: Mission; reload: 
               I approve the write in this run
             </label>
           )}
-          <button className="btn signal" disabled={!canRun || busy} onClick={run}>Run mission</button>
+          <p className="run-note">A real AI agent now does the job. It can only touch what's in this warrant.</p>
+          <button className="btn signal" disabled={!canRun || busy} onClick={run}>Run the agent</button>
         </div>
       )}
 
@@ -174,13 +196,15 @@ function MissionDetail({ mission, reload, notify }: { mission: Mission; reload: 
   )
 }
 
-function WarrantCard({ warrant, busy, onApprove, onReject, onNarrow, onRedraft }: {
-  warrant: Warrant; busy: boolean; onApprove: () => void; onReject: () => void; onNarrow: (cap: string) => void; onRedraft: () => void
+function WarrantCard({ warrant, everything, hint, busy, onApprove, onReject, onNarrow, onRedraft }: {
+  warrant: Warrant; everything: Capability[]; hint: boolean; busy: boolean; onApprove: () => void; onReject: () => void; onNarrow: (cap: string) => void; onRedraft: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [policy, setPolicy] = useState<string | null>(null)
   const pending = warrant.status === 'checked'
   const failed = warrant.status === 'rejected_by_checker'
+  const granted = new Set(warrant.can.map(g => g.capability))
+  const takenAway = everything.filter(c => !granted.has(c.id))
   useEffect(() => { setPolicy(null); setOpen(false) }, [warrant.id])
   const toggle = async () => {
     setOpen(o => !o)
@@ -189,15 +213,18 @@ function WarrantCard({ warrant, busy, onApprove, onReject, onNarrow, onRedraft }
   return (
     <div className={`card ${pending ? 'pending' : ''}`}>
       {pending && <span className="beam" aria-hidden="true" />}
-      {pending && <p className="next"><b>Read this, remove anything you don't want, then approve.</b></p>}
+      {pending && <p className="next"><b>Here's what the AI asked for.</b> Remove anything you don't want it to have, then approve.</p>}
+      {pending && hint && granted.has(GRADES) && (
+        <p className="try-this"><b>Try this:</b> remove “Read your grades”, approve, then run. The job still asks for grades, so you'll see the agent get stopped.</p>
+      )}
       <div className="grants">
         <div>
-          <span className="label">This mission can</span>
+          <span className="label">With this warrant, the agent can</span>
           <ul className="cascade">
             {warrant.can.map(g => (
               <li key={g.capability} className="grant">
                 <span className={`sq ${g.writes ? 'w' : ''}`} />
-                <div><span>{g.text}</span>{g.reason && <small>{g.reason}</small>}</div>
+                <div><span>{g.text.replace(' (asks you every run)', '')}</span>{g.reason && <small>{g.reason}</small>}</div>
                 {g.writes && <Tag tone="signal">asks each run</Tag>}
                 {pending && warrant.can.length > 1 && (
                   <button className="remove" disabled={busy} onClick={() => onNarrow(g.capability)} aria-label={`Remove: ${g.text}`}>Remove</button>
@@ -207,8 +234,11 @@ function WarrantCard({ warrant, busy, onApprove, onReject, onNarrow, onRedraft }
           </ul>
         </div>
         <div>
-          <span className="label">It cannot</span>
-          <ul>{warrant.cannot.map(c => <li key={c} className="grant muted"><span className="sq o" /><div>{c}</div></li>)}</ul>
+          <span className="label">Without Warrant it could also</span>
+          <ul className="taken">
+            {takenAway.map(c => <li key={c.id} className="grant muted"><span className="sq o" /><div>{c.plain.replace(' (asks you every run)', '')}</div></li>)}
+            <li className="grant muted"><span className="sq o" /><div>Reach any other website</div></li>
+          </ul>
         </div>
       </div>
       {warrant.notes.map(n => <p key={n} className="card-note">{n}</p>)}
@@ -220,12 +250,12 @@ function WarrantCard({ warrant, busy, onApprove, onReject, onNarrow, onRedraft }
       )}
       <div className="card-foot">
         {pending && <>
-          <button className="btn" disabled={busy} onClick={onApprove}>Approve</button>
+          <button className="btn" disabled={busy} onClick={onApprove}>Approve this warrant</button>
           <button className="btn ghost" disabled={busy} onClick={onReject}>Reject</button>
         </>}
         {failed && <button className="btn" onClick={onRedraft}>Draft again</button>}
         {warrant.status === 'approved' && <span className="stamp">Approved {warrant.decided_at ? ago(warrant.decided_at) : ''}</span>}
-        <button className="text-btn push" onClick={toggle} aria-expanded={open}>{open ? 'Hide' : 'Show'} technical rules</button>
+        <button className="text-btn push" onClick={toggle} aria-expanded={open}>{open ? 'Hide' : 'Show'} the rules OpenShell enforces</button>
       </div>
       <AnimatePresence initial={false}>
         {open && (
@@ -302,7 +332,7 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
 
   return (
     <div className="page run">
-      <a className="text-btn" href="#/app">← Missions</a>
+      <a className="text-btn" href="#/app">← All jobs</a>
       <header className="run-head">
         <div>
           <span className="label">{sandbox ? `NVIDIA OpenShell sandbox ${String(sandbox.name)}` : 'Built-in enforcer'} · {ago(run.started_at)}</span>
@@ -310,6 +340,31 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
         </div>
         <Status status={status} />
       </header>
+
+      {done && (
+        <section className="changed enter">
+          <span className="label">What changed because of Warrant</span>
+          <div className="changed-grid">
+            <div>
+              <h3>Without Warrant</h3>
+              {blocked.length ? <>
+                <p>{blocked.length === 1 ? 'This request' : 'These requests'} would have gone through:</p>
+                <ul>{blocked.map(e => <li key={e.seq}><code>{String(e.method)} {host(e)}{String(e.path)}</code></li>)}</ul>
+              </> : <p>The agent would have had your full access, whether the job needed it or not.</p>}
+            </div>
+            <div className="with">
+              <h3>With this warrant</h3>
+              {blocked.length
+                ? <p><b>{blocked.length === 1 ? 'It was' : 'They were'} stopped before being sent.</b> The agent never got that data, and it finished the job with what it was allowed.</p>
+                : <p><b>The agent stayed inside its warrant,</b> with {network.length} allowed request{network.length === 1 ? '' : 's'}. Nothing needed stopping. To see a block, try “{HINT_TITLE}” with grades removed.</p>}
+            </div>
+          </div>
+          <div className="changed-foot">
+            <a className="text-btn" href="#/app">Try another job</a>
+            <a className="btn signal" href="#/use">Use this yourself</a>
+          </div>
+        </section>
+      )}
 
       <div className="run-grid">
         <section className="run-main">

@@ -1,1 +1,1 @@
-{"root":["./src/landing.tsx","./src/preview.tsx","./src/workspace.tsx","./src/api.ts","./src/main.tsx","./src/ui.tsx","./src/rb/modules.d.ts"],"version":"5.9.3"}
+{"root":["./src/landing.tsx","./src/playground.tsx","./src/preview.tsx","./src/terminal.tsx","./src/useit.tsx","./src/workspace.tsx","./src/api.ts","./src/main.tsx","./src/ui.tsx","./src/rb/modules.d.ts"],"version":"5.9.3"}

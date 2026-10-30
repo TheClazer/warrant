@@ -15,6 +15,13 @@ def main(argv: list[str] | None = None) -> int:
     pol = sub.add_parser("policy", help="print the OpenShell policy for a stored warrant")
     pol.add_argument("warrant_id")
     sub.add_parser("status", help="show configuration (no secrets)")
+    tri = sub.add_parser("try", help="run the whole flow in your terminal against the fictional portal")
+    tri.add_argument("job", nargs="?", help="what the agent should do on the portal")
+    tri.add_argument("--remove", action="append", default=[], help="capability ID to take away, for example portal.read.grades")
+    tri.add_argument("--yes", action="store_true", help="approve without asking")
+    guard = sub.add_parser("guard", help="run a local program with its web traffic limited to hosts you allow")
+    guard.add_argument("--allow", action="append", default=[], metavar="HOST", help="allowed host, or *.example.com")
+    guard.add_argument("command_", nargs=argparse.REMAINDER, metavar="-- COMMAND", help="the program and its arguments")
     portal = sub.add_parser("portal", help="run the fictional demo course portal")
     portal.add_argument("--host", default="127.0.0.1")
     portal.add_argument("--port", type=int, default=8201)
@@ -45,9 +52,18 @@ def main(argv: list[str] | None = None) -> int:
         uvicorn.run(create_portal(), host=args.host, port=args.port, log_level="warning")
         return 0
 
+    if args.command == "guard":
+        from .local import run_guard
+
+        return run_guard(args.allow, args.command_)
+
     from .config import get_settings
 
     settings = get_settings()
+    if args.command == "try":
+        from .local import run_try
+
+        return run_try(settings, args.job, args.remove, args.yes)
     if args.command == "status":
         import json
 

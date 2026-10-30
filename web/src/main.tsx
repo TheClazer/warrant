@@ -4,9 +4,10 @@ import { createRoot } from 'react-dom/client'
 import { api, Status, token } from './api'
 import { Landing } from './Landing'
 import './styles.css'
+import { UseIt } from './UseIt'
 import { Evidence, Missions, RunPage, Sites } from './Workspace'
 
-type Route = { view: 'landing' | 'app' | 'run' | 'sites' | 'evidence'; run?: string }
+type Route = { view: 'landing' | 'app' | 'run' | 'sites' | 'evidence' | 'use'; run?: string }
 
 function readHash(): Route {
   const h = location.hash.replace(/^#\/?/, '')
@@ -14,11 +15,13 @@ function readHash(): Route {
   if (h === 'app' || h === 'missions') return { view: 'app' }
   if (h === 'sites') return { view: 'sites' }
   if (h === 'evidence') return { view: 'evidence' }
+  if (h === 'use') return { view: 'use' }
   return { view: 'landing' }
 }
 
 const NAV: [Route['view'], string, string][] = [
-  ['app', 'Missions', '#/app'],
+  ['app', 'Try it', '#/app'],
+  ['use', 'Use it yourself', '#/use'],
   ['sites', 'Reviewed sites', '#/sites'],
   ['evidence', 'Evidence', '#/evidence'],
 ]
@@ -85,6 +88,7 @@ function Shell({ route }: { route: Route }) {
           {route.view === 'run' && route.run && <RunPage runId={route.run} portal={status?.portal_url} />}
           {route.view === 'sites' && <Sites />}
           {route.view === 'evidence' && <Evidence />}
+          {route.view === 'use' && <UseIt />}
         </div>
       </main>
       <AnimatePresence>

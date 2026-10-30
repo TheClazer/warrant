@@ -63,7 +63,31 @@ All on 26 October 2026, with real services. Details in `docs/verification/opensh
 | `web/` | React interface (missions, warrant approval, live run view, reviewed sites) |
 | `FEEDBACK.md` | Notes on Nebius and NVIDIA tools gathered while building |
 
-## Run it locally
+## Try it in your terminal
+
+Needs [uv](https://docs.astral.sh/uv/) and a Nebius Token Factory key. This starts a fictional portal on your
+machine, asks Nemotron what the job needs, lets you remove permissions, then runs the agent and shows what was
+blocked and what changed:
+
+```bash
+uvx --from git+https://github.com/TheClazer/warrant warrant try
+```
+
+`warrant try "your own job"` runs a different job on the same portal. Reviewed sites are listed in `src/warrant/sites.py`.
+
+## Guard a program you already have
+
+`warrant guard` runs a local program with its web traffic limited to the hosts you list, and prints each decision.
+No model is involved.
+
+```bash
+warrant guard --allow api.example.com -- python my_agent.py
+```
+
+This is cooperative: it uses the standard proxy environment variables, which a program can ignore, and for HTTPS it
+limits hosts rather than individual pages. For enforcement a program cannot opt out of, use NVIDIA OpenShell.
+
+## Run the web app locally
 
 Requires Python 3.11, [uv](https://docs.astral.sh/uv/) and Node 20+.
 
@@ -116,6 +140,7 @@ uv run mypy
 
 ## Current limits
 
+- The agent has no login handling, so it cannot sign in to real accounts yet.
 - The agent is Warrant's own small tool-using agent. Running Hermes Agent inside the sandbox is planned, not done.
 - The public demo uses the built-in enforcer; real OpenShell runs need a Docker host and are shown in the video.
 - The evaluation so far is an over-reach test on a fictional portal, run with the built-in enforcer. It does not

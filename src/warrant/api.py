@@ -18,10 +18,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .checker import check
-from .compiler import CompileError, compile_warrant, default_cannot
+from .compiler import CompileError, compile_warrant, narrow_warrant
 from .config import Settings, get_settings
 from .llm import ChatBackend, ModelUnavailable, TokenFactory
-from .models import Mission, Warrant, now
+from .models import Mission, now
 from .policy import render_policy
 from .runner import RunRefused, ensure_runnable, execute
 from .scheduler import Scheduler, is_due
@@ -200,17 +200,7 @@ def create_app(
             raise HTTPException(404, "Warrant not found") from None
         if old.status not in {"checked", "rejected_by_checker"}:
             raise HTTPException(409, "Only a warrant awaiting a decision can be narrowed.")
-        keep = tuple(g for g in old.grants if g.capability.id not in set(body.remove))
-        writes = any(g.capability.writes for g in keep)
-        new = Warrant(
-            mission_id=old.mission_id,
-            mission_sha256=old.mission_sha256,
-            grants=keep,
-            cannot=default_cannot(writes),
-            per_run_approval=writes,
-            model=old.model,
-            notes=(*old.notes, f"You removed: {', '.join(sorted(set(body.remove)))}"),
-        )
+        new = narrow_warrant(old, body.remove)
         m = get_mission(new.mission_id)
         verdict = check(new, m, catalogue)
         new.status = "checked" if verdict.ok else "rejected_by_checker"

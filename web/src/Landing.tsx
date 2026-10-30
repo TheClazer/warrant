@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api, EvalSummary } from './api'
+import { Playground } from './Playground'
 import { Preview } from './Preview'
+import ClickSpark from './rb/ClickSpark.jsx'
+import DecryptedText from './rb/DecryptedText.jsx'
 import GradientASCII from './rb/GradientASCII.jsx'
+import LogoLoop from './rb/LogoLoop.jsx'
+import Magnet from './rb/Magnet.jsx'
+import RotatingText from './rb/RotatingText.jsx'
+import SpotlightCard from './rb/SpotlightCard.jsx'
 import TechText from './rb/TechText.jsx'
+import { Terminal } from './Terminal'
 import { Reveal } from './ui'
 
 const REPO = 'https://github.com/TheClazer/warrant'
@@ -20,6 +28,14 @@ const LOG = [
   ['DENIED', 'www.iana.org', 'policy_dns_ineligible'],
 ]
 
+const STRIP = [
+  ['ALLOWED', 'GET /announcements'], ['BLOCKED', 'GET /grades'], ['BLOCKED', 'POST /forum/t1/reply'],
+  ['ALLOWED', 'GET /assignments'], ['BLOCKED', 'www.iana.org'], ['BLOCKED', 'POST /assignments/cs301-lab4/submit'],
+].map(([d, r]) => ({
+  title: `${d} ${r}`,
+  node: <span className={`strip-item ${d === 'BLOCKED' ? 'bad' : ''}`}><b>{d}</b> {r}</span>,
+}))
+
 export function Landing() {
   const [evalData, setEval] = useState<EvalSummary | null>(null)
   useEffect(() => { api.evalSummary().then(setEval).catch(() => setEval({ available: false })) }, [])
@@ -27,40 +43,82 @@ export function Landing() {
 
   return (
     <div className="landing">
+      <ClickSpark sparkColor="#FFC629" sparkSize={12} sparkRadius={26} sparkCount={9} duration={450}>
       <header className="hero">
         <div className="hero-bg" aria-hidden="true">
-          <GradientASCII colors={['#6b4e00', '#FFC629', '#FFE08A', '#FFF6D8']} shape="horizon" cellSize={13} density={0.75}
-            glyphOpacity={0.8} gradientOpacity={0.55} glow={0.15} flicker={0.15} flow={0.4} speed={0.6} grain={0.05}
+          <GradientASCII colors={['#3a2b00', '#B27700', '#FFC629', '#FFE9A8']} shape="horizon" cellSize={12} density={0.85}
+            glyphOpacity={0.95} gradientOpacity={0.85} glow={0.35} flicker={0.2} flow={0.55} speed={0.8} grain={0.05}
             dpr={1} fontFamily='"Martian Mono", ui-monospace, monospace' clickEffect="wave" />
         </div>
         <nav className="lnav wrap" aria-label="Main">
           <a className="mark" href="#/">WARRANT</a>
           <div className="lnav-links mono">
+            <a href="#try" onClick={jump('try')}>Try it</a>
             <a href="#how" onClick={jump('how')}>How it works</a>
             <a href="#proof" onClick={jump('proof')}>Evidence</a>
+            <a href="#/use">Use it yourself</a>
             <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>
           </div>
           <a className="btn signal" href="#/app">Open the app</a>
         </nav>
         <div className="hero-copy wrap">
+          <p className="eyebrow mono">
+            <DecryptedText text="Permissions for personal AI agents" animateOn="view" sequential speed={28} characters="#@%&*+=/<>01" />
+          </p>
           <div className="hero-word">
             <TechText text="WARRANT" fontFamily="Archivo" fontWeight={800} fontSize={210} letterSpacing={-0.02} align="left"
               color="#EEEFEA" accentColor="#FFC629" reveal="letter" dashLength={5} dashGap={3} specks={10}
               speed={0.7} />
           </div>
           <div className="hero-row">
-            <h1>Give your AI agent a warrant, not your keys.</h1>
+            <h1>Give your AI agent a warrant, <br />not your{' '}
+              <RotatingText texts={['keys.', 'passwords.', 'inbox.', 'bank login.']} rotationInterval={2200} mainClassName="rotator"
+                staggerDuration={0.015} staggerFrom="last" splitBy="characters" />
+            </h1>
             <div>
-              <p>Before each job, the agent gets a short list of exactly what it may touch. You approve it. NVIDIA OpenShell enforces it. Everything else is blocked and shown to you.</p>
+              <p>Before each job, it gets a short list of what it may touch. You approve it. Anything else gets blocked, and you see it happen.</p>
               <div className="row">
-                <a className="btn signal" href="#/app">Try the live demo</a>
-                <a className="btn ghost-dark" href={REPO} target="_blank" rel="noreferrer">Read the code</a>
+                <Magnet padding={70} magnetStrength={4}><a className="btn signal big-btn" href="#/app">Try the live demo</a></Magnet>
+                <a className="btn ghost-dark big-btn" href="#try" onClick={jump('try')}>Try to break it</a>
               </div>
             </div>
           </div>
         </div>
-        <div className="wrap hero-preview"><Preview /></div>
+        <div className="strip" aria-hidden="true">
+          <LogoLoop logos={STRIP} speed={46} gap={44} logoHeight={22} pauseOnHover={false} fadeOut={false} />
+        </div>
       </header>
+
+      <section id="try" className="wrap sec try">
+        <Reveal>
+          <span className="label">Try it here</span>
+          <h2>You hold the warrant. Now try to get past it.</h2>
+          <Playground />
+        </Reveal>
+      </section>
+
+      <section className="band-dark">
+        <div className="wrap sec local">
+          <Reveal>
+            <span className="label on-dark">On your own machine</span>
+            <h2>One command. Your terminal.</h2>
+            <p className="lede on-dark">Run the same flow on your laptop, or limit a script you already have to the sites you choose.</p>
+            <div className="oneliner mono"><span>$</span> uvx --from git+https://github.com/TheClazer/warrant warrant try</div>
+            <a className="btn signal" href="#/use">See every command</a>
+          </Reveal>
+          <Reveal><Terminal /></Reveal>
+        </div>
+      </section>
+
+      <section className="band-dark">
+        <div className="wrap sec">
+          <Reveal>
+            <span className="label on-dark">A whole mission, start to finish</span>
+            <h2>Eight seconds of what the app does.</h2>
+            <div className="hero-preview"><Preview /></div>
+          </Reveal>
+        </div>
+      </section>
 
       <section id="how" className="wrap sec">
         <Reveal>
@@ -68,11 +126,11 @@ export function Landing() {
           <h2>Three steps, and the last one isn't up to the AI.</h2>
           <div className="steps">
             {STEPS.map(s => (
-              <article key={s.n}>
+              <SpotlightCard key={s.n} className="step" theme="light" spotlightColor="rgba(255, 198, 41, 0.45)" intensity={0.5} spotlightSize={280}>
                 <span className="step-n">{s.n}</span>
                 <h3>{s.title}</h3>
                 <p>{s.body}</p>
-              </article>
+              </SpotlightCard>
             ))}
           </div>
         </Reveal>
@@ -140,6 +198,7 @@ export function Landing() {
         <span>The public demo uses the built-in enforcer; OpenShell needs its own Docker host.</span>
         <a href={REPO} target="_blank" rel="noreferrer">Apache-2.0</a>
       </footer>
+      </ClickSpark>
     </div>
   )
 }

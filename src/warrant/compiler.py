@@ -101,3 +101,18 @@ def compile_warrant(
         model=model,
         notes=tuple(notes),
     )
+
+
+def narrow_warrant(old: Warrant, remove: list[str]) -> Warrant:
+    """A new draft with capabilities taken away. Narrowing only: nothing can be added here."""
+    keep = tuple(g for g in old.grants if g.capability.id not in set(remove))
+    writes = any(g.capability.writes for g in keep)
+    return Warrant(
+        mission_id=old.mission_id,
+        mission_sha256=old.mission_sha256,
+        grants=keep,
+        cannot=default_cannot(writes),
+        per_run_approval=writes,
+        model=old.model,
+        notes=(*old.notes, f"You removed: {', '.join(sorted(set(remove)))}"),
+    )
