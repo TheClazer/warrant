@@ -222,7 +222,7 @@ Things it does not do:
 - **The agent loop is not sandboxed.** With OpenShell, the requests run in the sandbox, not the agent itself.
 - **Without an owner token the API is open.** It refuses other websites and, on loopback, foreign host names. Set `WARRANT_ADMIN_TOKEN` before exposing it to a network.
 
-Paths containing encoded dots or slashes (`%2e`, `%2f`) are refused by the built-in enforcer, even if a site legitimately uses them.
+Warrant refuses paths containing encoded dots, slashes or backslashes (`%2e`, `%2f`, `%5c`, `%25`) with either enforcer, even if a site legitimately uses them. OpenShell 0.1.5 passes `%252e` and `%5c` on as written, so this protection covers the agent's requests. It would not cover another program running inside the sandbox; see `docs/verification/openshell-deciding-check.md`.
 
 ## Current limits
 

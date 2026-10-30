@@ -64,3 +64,16 @@ def test_denied_request_is_attributed_to_the_right_url(fake_openshell):
     assert info.value.decision.path == "/grades"
     assert "L7_REQUEST deny" in info.value.decision.reason
     assert [(d.allowed, d.path) for d in seen] == [(True, "/announcements"), (False, "/grades")]
+
+
+@pytest.mark.parametrize("path", ["/announcements/%252e%252e/grades", "/announcements/..%5cgrades", "/announcements/..%2fgrades"])
+def test_ambiguous_paths_never_reach_the_sandbox(fake_openshell, monkeypatch, path):
+    def must_not_run(*_args, **_kwargs):
+        raise AssertionError("curl ran")
+
+    monkeypatch.setattr(openshell, "exec_in", must_not_run)
+    seen = []
+    client = SandboxClient(openshell.Sandbox("wrt-test", Path("p.yaml")), seen.append)
+    with pytest.raises(Blocked):
+        client.request("GET", "http://10.0.0.5:8201" + path)
+    assert [d.allowed for d in seen] == [False]

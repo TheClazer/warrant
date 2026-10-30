@@ -14,7 +14,7 @@ import httpx
 
 from . import openshell
 from .client import Blocked
-from .gate import Decision
+from .gate import Decision, ambiguous, split
 
 MARK = "__WARRANT_HTTP_STATUS__"
 
@@ -65,6 +65,12 @@ class SandboxClient:
     def request(self, method: str, url: str, data: dict | None = None, **_: object) -> httpx.Response:
         method = method.upper()
         target = httpx.URL(url)
+        host, port, path = split(url)
+        if ambiguous(path):
+            # OpenShell 0.1.5 passes %252e and %5c on as written, and some servers read those as a parent directory.
+            refused = Decision(False, method, url, host, port, path, None, "Warrant refused an ambiguous path before sending")
+            self.on_decision(refused)
+            raise Blocked(refused)
         cmd = ["curl", "-sS", "--max-time", str(self.timeout), "-X", method, "-w", MARK + "%{http_code}"]
         for key, value in (data or {}).items():
             cmd += ["--data-urlencode", f"{key}={value}"]

@@ -60,3 +60,21 @@ Each warrant run used a fresh sandbox. Results are in `eval/results/`; the earli
 then `warrant try` with the write permission removed and `WARRANT_ENFORCER=openshell`. In sandbox `wrt-596aa402443d`,
 `GET /repos/NVIDIA/OpenShell/issues` was allowed and `POST /repos/NVIDIA/OpenShell/issues` was blocked. No GitHub token was set, so
 nothing could have been posted in any case. Token forwarding is not supported inside a sandbox yet.
+
+## Path tricks inside a real sandbox (2026-10-30)
+
+OpenShell 0.1.5 in WSL, warrant allowing only `/announcements` and `/announcements/**`. The upstream was a throwaway
+server built to be lenient: it decodes twice and treats a backslash as a slash, then returned fictional grades for
+anything that resolved to `/grades`. Raw `curl --path-as-is` inside the sandbox gave:
+
+| Path | OpenShell 0.1.5 |
+|---|---|
+| `/announcements/../grades`, `/./../`, `/x/../../`, `//../` | Normalised to `/grades`, denied |
+| `/announcements/%2e%2e/grades` (either case) | Normalised to `/grades`, denied |
+| `/announcements/..%2fgrades` | Rejected as an invalid request target |
+| `/announcements/%252e%252e/grades` | **Allowed and forwarded as written**; this server returned the grades |
+| `/announcements/..%5cgrades` | **Allowed and forwarded**; this server returned the grades |
+
+Those two only matter if the real server decodes twice or treats `\\` as `/`, as this one was built to. Warrant's sandbox
+client now refuses them before running curl, and the agent's requests all go through that client. A different
+program running inside the sandbox could still send them, because the policy format here only lists allowed paths.
