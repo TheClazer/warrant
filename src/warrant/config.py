@@ -51,6 +51,10 @@ class Settings:
         default_factory=lambda: json.loads(os.environ.get("WARRANT_PRICES_JSON", "{}"))
     )
 
+    def __post_init__(self) -> None:
+        if self.enforcer not in {"proxy", "openshell"}:
+            raise ValueError(f'WARRANT_ENFORCER must be "proxy" or "openshell", not {self.enforcer!r}')
+
     @property
     def live_model(self) -> bool:
         return bool(self.nebius_api_key.strip())

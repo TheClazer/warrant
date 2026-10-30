@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import Capability, Mission, Warrant
+from .models import Capability, Mission, Warrant, covers_whole_site
 
 MAX_HOSTS = 5
 MAX_GRANTS = 8
@@ -46,7 +46,7 @@ def check(warrant: Warrant, mission: Mission, catalogue: dict[str, Capability]) 
         rule = cap.rule
         if "*" in rule.host:
             findings.append(f"Wildcard host in {cap.id}.")
-        if any(p in {"/**", "/*"} for p in rule.paths):
+        if any(covers_whole_site(p) for p in rule.paths):
             findings.append(f"Capability {cap.id} covers a whole site; registry entries must be narrower.")
         if not cap.plain.strip():
             findings.append(f"Capability {cap.id} has no plain-language line.")

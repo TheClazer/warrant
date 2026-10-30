@@ -119,11 +119,11 @@ def execute(
         if use_memory:
             from .memory import briefing
 
-            background, used = briefing(store, mission)
+            background, used = briefing(store, mission, writes=bool(warrant and warrant.writes))
             if background:
                 emit("memory", used)
         outcome = run_agent(
-            mission.text + background, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
+            mission.text + background, starts, Metered(backend, ledger), model, http, emit, resist_prompt=use_memory or setup == "broad_resist"
         )
         status = outcome.status
         result = {"answer": outcome.answer, "steps": outcome.steps, "blocked": outcome.blocked}

@@ -7,6 +7,7 @@ wildcard or a broader path. Adding a site means reviewing its capabilities here,
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -14,7 +15,7 @@ from urllib.parse import urlsplit
 import yaml
 
 from .config import Settings
-from .models import Capability, Rule, Site
+from .models import Capability, Rule, Site, covers_whole_site
 
 
 def _origin(url: str) -> tuple[str, str, int]:
@@ -196,11 +197,13 @@ def add_site(
     scheme, host, _ = _origin(url)
     if scheme != "https" and host not in {"127.0.0.1", "localhost"}:
         raise ValueError("Use an https:// address. Plain http is only accepted for localhost.")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,40}", name):
+        raise ValueError("Use a short lowercase name with letters, numbers, - or _, such as my-wiki.")
     if not read and not write:
         raise ValueError("List at least one path with --read or --write.")
     for route in (*read, *write):
-        if not route.startswith("/") or route in {"/*", "/**"}:
-            raise ValueError(f"Paths must start with / and cannot cover the whole site: {route}")
+        if not route.startswith("/") or ".." in route or covers_whole_site(route):
+            raise ValueError(f"Paths must start with /, cannot contain .. and cannot cover the whole site: {route}")
     caps: list[dict[str, Any]] = [
         {"id": f"{name}.read.{i}", "does": f"Read {route}", "methods": ["GET"], "paths": [route]}
         for i, route in enumerate(read, 1)

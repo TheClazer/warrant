@@ -154,7 +154,8 @@ export const api = {
 }
 
 export function streamRun(id: string, onEvent: (e: RunEvent) => void): () => void {
-  const source = new EventSource(`/api/runs/${id}/stream`)
+  const owner = token.get()
+  const source = new EventSource(`/api/runs/${id}/stream${owner ? `?token=${encodeURIComponent(owner)}` : ''}`)
   const kinds = ['start', 'step', 'page', 'network', 'model', 'answer', 'error', 'done', 'sandbox', 'memory']
   kinds.forEach(k => source.addEventListener(k, ev => {
     const data = JSON.parse((ev as MessageEvent).data) as RunEvent

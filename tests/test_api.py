@@ -47,7 +47,8 @@ def test_draft_check_approve_and_policy(settings):
 
 def test_owner_token_required_when_configured(settings):
     c = _client(replace(settings, admin_token="x" * 32), Scripted([]))
-    mid = c.get("/api/missions").json()[0]["id"]
+    assert c.get("/api/missions").status_code == 401
+    mid = c.get("/api/missions", headers={"Authorization": "Bearer " + "x" * 32}).json()[0]["id"]
     assert c.post(f"/api/missions/{mid}/warrant").status_code == 401
     assert c.post("/api/missions", json={"title": "t", "text": "do a thing"}).status_code == 401
     ok = c.post(

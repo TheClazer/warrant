@@ -49,10 +49,14 @@ def apply_refusals(store: Store, warrant: Warrant, mission: Mission) -> Warrant:
     return narrowed
 
 
-def briefing(store: Store, mission: Mission) -> tuple[str, dict]:
-    """Background for the agent, and a summary of what was used. It is shown to the person on every run."""
+def briefing(store: Store, mission: Mission, *, writes: bool = False) -> tuple[str, dict]:
+    """Background for the agent, and a summary of what was used. It is shown to the person on every run.
+
+    The last answer was built from pages the agent read, so a page could plant text in it. It is left out of
+    jobs that can change something, so planted text cannot carry over into a later submit or post.
+    """
     notes = [m["text"] for m in store.memories("note")]
-    last = [m for m in store.memories("last") if m["key"] == mission.text_sha256]
+    last = [] if writes else [m for m in store.memories("last") if m["key"] == mission.text_sha256]
     parts = []
     if notes:
         parts.append("Things the user asked you to remember:\n" + "\n".join(f"- {n}" for n in notes))

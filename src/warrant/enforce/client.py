@@ -1,7 +1,7 @@
 """Development enforcer: an HTTP client that refuses any request the gate does not allow.
 
-This is the stand-in used on a laptop without Docker. On the Nebius machine the agent runs inside an
-OpenShell sandbox and the same decisions are enforced by OpenShell's network proxy (see ``openshell.py``).
+This is the default. With ``WARRANT_ENFORCER=openshell`` requests are made inside an OpenShell sandbox and
+OpenShell's network proxy decides instead (see ``openshell.py``).
 Every decision, allowed or blocked, is reported through ``on_decision``.
 """
 

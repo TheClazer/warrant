@@ -56,9 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "serve":
         import uvicorn
 
-        from .api import create_app
+        from .api import LOOPBACK, create_app
 
-        uvicorn.run(create_app(start_scheduler=True), host=args.host, port=args.port, log_level="info")
+        uvicorn.run(create_app(start_scheduler=True, allowed_hosts=LOOPBACK if args.host in LOOPBACK else None), host=args.host, port=args.port, log_level="info")
         return 0
 
     if args.command == "portal":

@@ -83,6 +83,12 @@ class Store:
     def delete_skill(self, name: str) -> None:
         self._q("DELETE FROM skills WHERE name=?", (name,))
 
+    def close_interrupted_runs(self) -> None:
+        """Runs live in this process, so any still marked running after a restart will never finish."""
+        for row in self._q("SELECT id FROM runs WHERE status='running'"):
+            self.finish_run(row["id"], "failed", {"error": "Stopped when the server restarted."}, {})
+            self.add_event(row["id"], "done", {"status": "failed"})
+
     # missions
     def save_mission(self, m: Mission) -> Mission:
         self._q("INSERT OR REPLACE INTO missions VALUES (?,?,?)", (m.id, m.model_dump_json(), m.created_at))

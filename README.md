@@ -1,6 +1,6 @@
 # Warrant
 
-**Per-mission permissions for personal AI agents, enforced by NVIDIA OpenShell.**
+**Per-mission permissions for personal AI agents, with enforcement by NVIDIA OpenShell or a built-in check.**
 
 Personal agents are most useful when they can act as you: read your portals, check your accounts, submit
 things on your behalf. That also makes them dangerous. A page the agent reads can contain instructions,
@@ -204,6 +204,25 @@ uv run mypy
   evaluation, and one run costs only a few thousand tokens.
 - **NVIDIA OpenShell** enforces each warrant as a sandbox policy, on your own Linux or WSL 2 machine with Docker Engine.
   We did not use Nebius AI Cloud.
+
+## Security model
+
+Warrant limits **where the agent's requests can go**. Rules come from a list you reviewed, never from the model.
+
+| Enforcer | Where the check runs | Good for |
+|---|---|---|
+| Built-in (default) | In the Warrant process, on the agent's own HTTP client | Trying it, and the public demo |
+| NVIDIA OpenShell | In a separate sandbox and network proxy for each run | Stronger isolation of each request |
+
+Things it does not do:
+
+- **It does not inspect content.** Data can still leave through a request the warrant allows, such as an allowed POST or a query string. Grant write access sparingly.
+- **It does not stop a page misleading the agent.** Pages are marked as untrusted, but that is guidance to the model, not a guarantee.
+- **"Read-only" means GET.** A site whose GET requests change data should not be listed as a read.
+- **The agent loop is not sandboxed.** With OpenShell, the requests run in the sandbox, not the agent itself.
+- **Without an owner token the API is open.** It refuses other websites and, on loopback, foreign host names. Set `WARRANT_ADMIN_TOKEN` before exposing it to a network.
+
+Paths containing encoded dots or slashes (`%2e`, `%2f`) are refused by the built-in enforcer, even if a site legitimately uses them.
 
 ## Current limits
 

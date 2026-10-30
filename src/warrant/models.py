@@ -61,6 +61,11 @@ def _glob_regex(pattern: str) -> re.Pattern[str]:
     return re.compile("^" + "".join(out) + "$")
 
 
+def covers_whole_site(pattern: str) -> bool:
+    """True when a glob has no fixed first path segment, such as ``/**``, ``/*/**`` or ``/**/*``."""
+    return pattern.lstrip("/").startswith("*")
+
+
 def path_matches(pattern: str, path: str) -> bool:
     return bool(_glob_regex(pattern).match(path))
 

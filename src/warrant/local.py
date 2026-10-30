@@ -374,6 +374,9 @@ def run_skill(settings: Settings, action: str, name: str | None, yes: bool = Fal
     if any(g.capability.site == "portal" for g in warrant.grants) and "WARRANT_PORTAL_URL" not in os.environ:
         portal = _start_demo_portal(settings.enforcer == "openshell")
     settings = replace(settings, nebius_api_key=key, portal_url=portal, data_dir=_data_dir())
+    if not check(warrant, mission, capability_index(build_registry(settings))).ok:
+        print("The reviewed permissions changed since this skill was saved. Save it again.", file=sys.stderr)
+        return 1
     _run_and_report(store, mission, warrant, settings, TokenFactory(settings))
     return 0
 
@@ -402,6 +405,9 @@ def run_guard(hosts: list[str], command: list[str]) -> int:
         print(f"Command not found: {command[0]}", file=sys.stderr)
         return 127
     print(dim(f"  {counts['allowed']} allowed, {counts['blocked']} blocked"), file=sys.stderr)
+    if not any(counts.values()):
+        print(blocked("  No traffic came through the guard."), file=sys.stderr)
+        print(dim("  If this program used the network, it ignored the proxy settings and was not limited."), file=sys.stderr)
     return code
 
 

@@ -112,9 +112,9 @@ function TokenDialog({ close }: { close: () => void }) {
     <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onMouseDown={e => e.target === e.currentTarget && close()}>
       <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="tok-h"
-        onSubmit={e => { e.preventDefault(); token.set(value.trim()); close() }}>
+        onSubmit={e => { e.preventDefault(); token.set(value.trim()); location.reload() }}>
         <h2 id="tok-h">Owner sign-in</h2>
-        <p>Drafting, approving and running need the owner token set on the server. It stays in this tab.</p>
+        <p>This server needs its owner token to show or change anything. It stays in this tab.</p>
         <label htmlFor="tok" className="label">Owner token</label>
         <input id="tok" type="password" autoComplete="off" value={value} onChange={e => setValue(e.target.value)} />
         <div className="row">

@@ -1,8 +1,7 @@
 """A compact tool-using agent for missions on web portals.
 
-On the Nebius host the production agent is Hermes Agent inside OpenShell. This agent has the same shape
-(Nemotron plans, tools fetch pages, a final answer is produced) and is used for local development and for
-repeatable evaluation, where every tool call must go through the same enforcer.
+Nemotron plans, tools fetch pages and a final answer is produced. The loop itself runs in the Warrant process;
+each request goes through the enforcer, which with OpenShell means ``curl`` inside the run's sandbox.
 """
 
 from __future__ import annotations
