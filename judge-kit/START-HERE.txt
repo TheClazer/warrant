@@ -1,0 +1,58 @@
+WARRANT: TRY IT IN 60 SECONDS
+=============================
+
+Warrant gives your AI agent a permission slip for one job, not your keys.
+You approve a short list, and everything else is blocked before it is sent.
+
+
+HOW TO RUN
+----------
+Windows:        double-click run-windows.bat
+Mac or Linux:   open a terminal in this folder and run:  sh run-mac-linux.sh
+
+The script needs uv, a small Python tool runner. If you don't have it, the
+script asks before installing it from astral.sh. The first run takes a minute
+while it downloads Warrant from GitHub. After that it starts quickly.
+
+
+WHAT YOU CAN TRY
+----------------
+1. See the difference (no AI, no key, about 5 seconds)
+   A scripted agent has one job: read the announcements. It also tries to read
+   your grades, submit your lab and send your data to a stranger. It runs once
+   with broad access and once under a warrant.
+   The result is read from the portal and the stranger's server, not from the
+   agent. Everything stays on your machine, and the portal is fictional.
+
+2. Guard a real command (no AI, no key)
+   Runs curl under "warrant guard", with only example.com allowed. The request
+   to example.com goes through, and the one to www.iana.org is blocked.
+
+3. The whole flow with the real AI (needs a Nebius Token Factory key)
+   NVIDIA Nemotron 3 Super works out what the job needs, you can remove a
+   permission, then the agent runs and you watch what gets blocked.
+   Tip: when it asks what to remove, remove "Read your grades".
+   The key is used for that run and is not saved.
+
+
+WHAT TO LOOK FOR
+----------------
+- In option 1, the last two lines count what actually arrived: 1 and 1 without
+  a warrant, 0 and 0 with one.
+- In option 3, the job still finishes with what it was allowed to read.
+
+
+GOOD TO KNOW
+------------
+- These options use Warrant's built-in enforcer. NVIDIA OpenShell needs Linux or
+  WSL 2 with Docker Engine; see "With NVIDIA OpenShell" in the README.
+- Option 3 sends the pages the agent reads to the model on Nebius Token Factory.
+- Warrant keeps its data in a .warrant folder in your home folder.
+  Delete that folder to remove it.
+
+
+LINKS
+-----
+Video:      https://youtu.be/U3mQIKMDdmE
+Live demo:  https://warrant-demo.onrender.com   (no install needed)
+Code:       https://github.com/TheClazer/warrant

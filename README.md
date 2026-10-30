@@ -71,6 +71,9 @@ With real services, from 26 October 2026. Details in `docs/verification/openshel
 
 ## See the difference
 
+The quickest way to try it is the `judge-kit` folder: download it, then run `run-windows.bat` or `run-mac-linux.sh`.
+
+
 A scripted agent tries to read your grades, submit your lab and send your data to a stranger, once with broad access
 and once under a warrant. The result is read at the receiving end. No model or key is involved, nothing leaves your
 machine, and it uses the built-in enforcer. The same check is in `tests/test_prove.py`.
