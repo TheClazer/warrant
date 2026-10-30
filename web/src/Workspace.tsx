@@ -321,30 +321,25 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
             ))}
             {!calls.length && <Skeleton lines={2} />}
           </div>
-          <AnimatePresence>
-            {answer && (
-              <motion.div className="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <span className="label">Result</span>
-                <Answer text={String(answer.text ?? '')} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {answer && (
+            <div className="result enter">
+              <span className="label">Result</span>
+              <Answer text={String(answer.text ?? '')} />
+            </div>
+          )}
           {run.result?.error && <p className="findings">{run.result.error}</p>}
         </section>
 
         <aside className="feed-col">
           <span className="label">Security feed</span>
           <ol className="feed">
-            <AnimatePresence initial={false}>
-              {[...network].reverse().map(e => (
-                <motion.li key={e.seq} layout initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 30 }} className={`event ${e.decision === 'blocked' ? 'bad' : ''}`}>
-                  <div className="event-h mono"><b>{e.decision === 'blocked' ? 'Blocked' : 'Allowed'}</b><span>{new Date(Number(e.t) * 1000).toLocaleTimeString()}</span></div>
-                  <code>{String(e.method)} {host(e)}{String(e.path)}</code>
-                  {e.decision === 'blocked' && <small>{whyBlocked(e)}</small>}
-                </motion.li>
-              ))}
-            </AnimatePresence>
+            {[...network].reverse().map(e => (
+              <li key={e.seq} className={`event ${e.decision === 'blocked' ? 'bad' : ''}`}>
+                <div className="event-h mono"><b>{e.decision === 'blocked' ? 'Blocked' : 'Allowed'}</b><span>{new Date(Number(e.t) * 1000).toLocaleTimeString()}</span></div>
+                <code>{String(e.method)} {host(e)}{String(e.path)}</code>
+                {e.decision === 'blocked' && <small>{whyBlocked(e)}</small>}
+              </li>
+            ))}
             {!network.length && <li className="dim">No requests yet.</li>}
           </ol>
           <dl className="meters">

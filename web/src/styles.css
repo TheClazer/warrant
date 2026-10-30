@@ -335,3 +335,5 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 /* In this product a failed call chip means a blocked request, so it shows a stop mark rather than a retry arrow. */
 .call-chip[data-status='error'] .call-chip__glyph[data-state='in'] svg { display: none }
 .call-chip[data-status='error'] .call-chip__glyph[data-state='in']::before { content: '\00d7'; font: 700 17px/1 var(--sans) }
+.stamp-in { animation: stamp .18s ease-out both }
+@keyframes stamp { from { opacity: 0; transform: scale(1.5) rotate(-6deg) } }
