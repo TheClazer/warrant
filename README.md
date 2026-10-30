@@ -13,6 +13,8 @@ anywhere else, the request is blocked, logged and shown to you, and the mission 
 
 Built for the Nebius × NVIDIA Global AI Hackathon (Personal AI track).
 
+**[Watch the demo](https://youtu.be/U3mQIKMDdmE)** · **[Try the live demo](https://warrant-demo.onrender.com)**
+
 ## How it works
 
 1. **You write a mission.** "Every morning, check my course portal for announcements and deadlines and brief me."
@@ -194,8 +196,11 @@ uv run mypy
 
 - **NVIDIA Nemotron 3 Super** (`nvidia/nemotron-3-super-120b-a12b`) drafts warrants and drives the agent.
 - **Nebius Token Factory** serves Nemotron through its OpenAI-compatible API. Every call is recorded with
-  tokens and latency; cost is shown when prices are configured from the Token Factory price page.
-- **NVIDIA OpenShell** enforces each warrant as a sandbox policy on the Nebius host.
+  tokens and latency; cost is shown when prices are configured from the Token Factory price page. It sped up the
+  work because there was no model server to run: the same API call worked on a laptop, in the public demo and in the
+  evaluation, and one run costs only a few thousand tokens.
+- **NVIDIA OpenShell** enforces each warrant as a sandbox policy, on your own Linux or WSL 2 machine with Docker Engine.
+  We did not use Nebius AI Cloud.
 
 ## Current limits
 

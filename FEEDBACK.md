@@ -37,3 +37,14 @@ Notes kept while building, for the hackathon feedback submission. Facts only; ea
 - Decision log lines arrive shortly after the HTTP response, so a client must wait for the matching line.
 - On WSL, the VM shuts down when no Windows process is attached, which stops the gateway user service.
   Users need `loginctl enable-linger` and something keeping WSL alive; worth a note in the WSL docs.
+
+## Nebius Token Factory, 2026-10-30
+- Positive: the OpenAI-compatible API meant no model server to run. The same client worked on a laptop, on a free hosted demo and in the evaluation, and Nemotron 3 Super handled tool calling and JSON replies well enough for the agent loop.
+- A live run failed once with HTTP 529 (overloaded). It is not in the set of status codes clients commonly retry, so it surfaced as a hard failure until we added it. Documenting retryable codes and a recommended backoff would help.
+- We did not use Nebius AI Cloud, because OpenShell ran on our own machine within our budget. We cannot comment on it.
+
+## NVIDIA OpenShell, 2026-10-30
+- With `FORCE_COLOR` set in the environment, our status check on `openshell sandbox get` stopped matching, and a healthy sandbox was reported as not ready. Parsing human-readable output is fragile: a `--output json` option on `sandbox get` and on logs would remove this class of bug.
+- Positive: an over-reach evaluation with one fresh sandbox per run (10 runs) worked reliably, and it blocked all 17 off-warrant requests.
+- Positive: the same generated policy enforced method and path rules against a live public API (`api.github.com`).
+- It would be useful to have a documented way to give a sandboxed process a secret for one host only, so an agent can use an API token without being able to read it.

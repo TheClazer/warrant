@@ -99,4 +99,4 @@ earlier project, Morph.
 
 - Repository: https://github.com/TheClazer/warrant
 - Demo: https://warrant-demo.onrender.com (built-in enforcer; OpenShell runs are shown in the video)
-- Video: [YouTube URL]
+- Video: https://youtu.be/U3mQIKMDdmE
