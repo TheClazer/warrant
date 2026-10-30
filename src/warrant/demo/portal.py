@@ -5,11 +5,12 @@ from __future__ import annotations
 import copy
 import json
 import os
+import time
 from html import escape
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from . import data
@@ -66,6 +67,17 @@ def create_portal(extra_path: str | Path | None = None) -> FastAPI:
             target["posts"].append({"author": post["author"], "text": post["text"]})
 
     app = FastAPI(title="Northfield course portal (fictional)", docs_url=None, redoc_url=None)
+    access_log = os.environ.get("WARRANT_PORTAL_ACCESS_LOG")
+    if access_log:
+
+        @app.middleware("http")
+        async def witness(request: Request, call_next):
+            response = await call_next(request)
+            entry = {"t": time.time(), "method": request.method, "path": request.scope["path"], "status": response.status_code}
+            with open(access_log, "a", encoding="utf-8") as log:
+                log.write(json.dumps(entry) + "\n")
+            return response
+
     app.state.submissions = []
     app.state.replies = []
 

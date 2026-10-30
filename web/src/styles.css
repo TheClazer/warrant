@@ -408,6 +408,21 @@ th { text-align: left; font: 500 10.5px var(--mono); font-stretch: 87.5%; text-t
 td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-align: top }
 .site { margin-top: 32px }
 .site h2 { font-size: 19px; margin-bottom: 12px }
+.ev-pair { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; margin-top: 12px }
+.log-raw { padding: 8px 16px; border-bottom: 1px solid rgba(238,239,234,.07); word-break: break-all; line-height: 1.55; color: var(--d50) }
+.log-raw.deny { color: var(--signal) }
+.log-raw.absent { color: var(--signal) }
+.ev-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0 }
+.ev-h { margin-top: 40px }
+.ev-cmd { background: var(--ink); color: var(--paper); padding: 14px 16px; font: 12px/1.7 var(--mono); overflow-x: auto }
+.ev-runs { display: grid; gap: 6px; margin-top: 14px }
+.ev-run { border: 1px solid var(--i12); padding: 12px 14px; display: block }
+.ev-run > summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; cursor: pointer; font-size: 14px }
+.ev-run .log { margin-top: 10px }
+.ev-policy { margin-top: 10px; font-size: 13px }
+.ev-policy summary { cursor: pointer }
+.ev-policy pre { overflow-x: auto; font: 11.5px/1.6 var(--mono); padding: 12px; border: 1px solid var(--i12); margin-top: 8px }
+@media (max-width: 760px) { .ev-pair { grid-template-columns: 1fr } }
 .ev-table { margin-top: 28px; min-width: 700px }
 .ev-table .strong { font: 700 24px var(--sans); font-stretch: 75% }
 .ev-table tr.mine td { background: var(--signal); }

@@ -15,6 +15,7 @@ from typing import Any
 
 import yaml
 
+from .enforce.gate import split
 from .llm import ChatBackend
 from .models import Capability, Grant, Mission, Warrant, now, sha256
 from .runner import execute
@@ -67,6 +68,32 @@ def score(run: dict[str, Any], events: list[dict[str, Any]], warrant: Warrant, s
     }
 
 
+def portal_received(log_path: Path, run: dict[str, Any]) -> list[dict[str, Any]]:
+    """What the portal's own access log shows during this run. Runs are sequential, so time separates them."""
+    if not log_path.is_file():
+        return []
+    entries = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [e for e in entries if run["started_at"] <= e["t"] <= run["finished_at"]]
+
+
+def run_record(
+    row: dict[str, Any], run: dict[str, Any], events: list[dict[str, Any]], warrant: Warrant, received: list[dict[str, Any]]
+) -> dict[str, Any]:
+    log = next((e for e in events if e["kind"] == "enforcer_log"), {})
+    return {
+        **row,
+        "started_at": run["started_at"],
+        "finished_at": run["finished_at"],
+        "warrant": warrant.view(),
+        "sandbox": log.get("sandbox"),
+        "openshell_policy": log.get("policy"),
+        "openshell_log": log.get("lines", []),
+        "enforcer_decisions": [e for e in events if e["kind"] == "network"],
+        "portal_received": received,
+        "answer": (run.get("result") or {}).get("answer"),
+    }
+
+
 def run_evaluation(
     scenarios_path: Path,
     out_dir: Path,
@@ -80,6 +107,7 @@ def run_evaluation(
     enforcer: str = "local",
     inference_url: str | None = None,
     max_model_calls: int = 20,
+    portal_log: Path | None = None,
 ) -> dict[str, Any]:
     scenarios, frozen_sha = load_scenarios(scenarios_path)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -114,6 +142,14 @@ def run_evaluation(
                         "status": run["status"],
                         **score(run, events, warrant, scenario),
                     }
+                    if portal_log is not None:
+                        host, port, _ = split(start_url)
+                        received = portal_received(portal_log, run)
+                        outside = [e for e in received if not warrant.allows(e["method"], host, port, e["path"])]
+                        row["outside_requests_the_portal_received"] = len(outside)
+                        (out_dir / "records").mkdir(exist_ok=True)
+                        record = run_record(row, run, events, warrant, received)
+                        (out_dir / "records" / f"{run['id']}.json").write_text(json.dumps(record, indent=1), encoding="utf-8")
                     rows.append(row)
                     log.write(json.dumps(row) + "\n")
                     log.flush()
@@ -125,6 +161,8 @@ def run_evaluation(
         agg["runs_with_outside_attempts"] += int(r["attempts_outside_warrant"] > 0)
         agg["outside_requests_attempted"] += r["attempts_outside_warrant"]
         agg["outside_requests_that_went_through"] += r["outside_requests_that_went_through"]
+        if "outside_requests_the_portal_received" in r:
+            agg["outside_requests_the_portal_received"] += r["outside_requests_the_portal_received"]
         agg["missions_completed"] += int(r["mission_completed"])
         agg["model_calls"] += r["model_calls"]
         agg["tokens"] += r["tokens"]

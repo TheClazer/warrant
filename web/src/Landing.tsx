@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, EvalSummary } from './api'
+import { api, EvalRecord, EvalSummary } from './api'
 import { HackathonBadge, NebiusLogo, NvidiaWord, PoweredByNebius } from './Logos'
 import { Playground } from './Playground'
 import ClickSpark from './rb/ClickSpark.jsx'
@@ -49,9 +49,16 @@ const BRIEF = [
   ['Nebius', 'Token Factory serves every model call.'],
 ]
 
+const EVIDENCE_URL = 'https://github.com/TheClazer/warrant/tree/main/eval/evidence'
+
 export function Landing() {
   const [evalData, setEval] = useState<EvalSummary | null>(null)
-  useEffect(() => { api.evalSummary().then(setEval).catch(() => setEval({ available: false })) }, [])
+  const [records, setRecords] = useState<EvalRecord[]>([])
+  useEffect(() => {
+    api.evalSummary().then(setEval).catch(() => setEval({ available: false }))
+    api.evalRecords().then(setRecords).catch(() => setRecords([]))
+  }, [])
+  const sample = records.find(r => r.setup === 'warrant' && r.scenario === 'grades-beyond-announcements')
   const setups = evalData?.available ? evalData.setups : null
 
   return (
@@ -190,22 +197,40 @@ export function Landing() {
           <Reveal>
             <span className="label">Evidence</span>
             <h2>We asked agents to overreach, then counted.</h2>
-            <p className="lede">Five missions that ask for more than their approved warrant, run twice each, with real Nemotron calls on a fictional course portal.</p>
+            <p className="lede">Five missions that ask for more than their approved warrant, run twice each, with real Nemotron calls on a fictional course portal. Each run has two separate records: OpenShell's log of what it decided, and the portal's own log of what arrived.</p>
             <div className="compare">
               <div>
                 <span className="label">Broad access</span>
                 <div className="big">{setups ? <>{setups.broad.outside_requests_that_went_through}<small> of {setups.broad.outside_requests_attempted}</small></> : '—'}</div>
-                <p>off-warrant requests went through</p>
+                <p>off-warrant requests went through. The portal's log shows {setups?.broad.outside_requests_the_portal_received ?? '—'} arrived.</p>
                 <div className="bar"><i style={{ width: '100%' }} /></div>
               </div>
               <div className="hot">
                 <span className="label">Under a warrant</span>
                 <div className="big">{setups ? <>{setups.warrant.outside_requests_that_went_through}<small> of {setups.warrant.outside_requests_attempted}</small></> : '—'}</div>
-                <p>off-warrant requests went through</p>
+                <p>off-warrant requests went through. The portal's log shows {setups?.warrant.outside_requests_the_portal_received ?? '—'} arrived.</p>
                 <div className="bar"><i style={{ width: '0%' }} /></div>
               </div>
             </div>
-            <p className="note">Warrant runs were enforced by NVIDIA OpenShell in real sandboxes. The expected fact appeared in {setups ? `${setups.warrant.missions_completed} of ${setups.warrant.runs}` : 'some'} answers under the warrant and {setups ? `${setups.broad.missions_completed} of ${setups.broad.runs}` : 'some'} with broad access, so agent accuracy still has room to grow. <a href="#/evidence">Full table</a></p>
+            {sample && (
+              <div className="ev-pair">
+                <div className="log">
+                  <div className="log-h mono"><i />OpenShell's log, run {sample.run_id}</div>
+                  {sample.openshell_log.map(line => (
+                    <div key={line} className={`log-raw ${line.includes('DENIED') ? 'deny' : ''}`}>{line}</div>
+                  ))}
+                </div>
+                <div className="log">
+                  <div className="log-h mono"><i />Portal's access log, same run</div>
+                  {sample.portal_received.map(e => (
+                    <div key={e.path + e.method} className="log-raw">{e.method} {e.path} {e.status}</div>
+                  ))}
+                  <div className="log-raw absent">No request for /grades arrived.</div>
+                </div>
+              </div>
+            )}
+            <p className="ev-links"><a className="btn" href="#/evidence">See all 20 runs</a> <a className="btn ghost" href={EVIDENCE_URL} target="_blank" rel="noreferrer">Raw files on GitHub</a></p>
+            <p className="note">Warrant runs were enforced by NVIDIA OpenShell in real sandboxes. The expected fact appeared in {setups ? `${setups.warrant.missions_completed} of ${setups.warrant.runs}` : 'some'} answers under the warrant and {setups ? `${setups.broad.missions_completed} of ${setups.broad.runs}` : 'some'} with broad access, so agent accuracy still has room to grow. We ran this ourselves, so you can check it but nobody independent has audited it. The video shows an earlier run of the same scenarios (24 of 24, 0 of 17), whose raw logs were not kept.</p>
           </Reveal>
         </div>
       </section>

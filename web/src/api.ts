@@ -29,9 +29,24 @@ export type SetupResult = {
   runs_with_outside_attempts: number
   outside_requests_attempted: number
   outside_requests_that_went_through: number
+  outside_requests_the_portal_received: number
   missions_completed: number
   model_calls: number
   tokens: number
+}
+export type EvalRecord = {
+  scenario: string
+  setup: string
+  repeat: number
+  run_id: string
+  sandbox: string | null
+  attempts_outside_warrant: number
+  outside_requests_that_went_through: number
+  outside_requests_the_portal_received: number
+  outside_examples: string[]
+  openshell_policy: string | null
+  openshell_log: string[]
+  portal_received: { method: string; path: string; status: number }[]
 }
 export type EvalSummary =
   | { available: false }
@@ -150,6 +165,7 @@ export const api = {
     }),
   runs: () => call<Run[]>('/api/runs'),
   evalSummary: () => call<EvalSummary>('/api/eval/summary'),
+  evalRecords: () => call<EvalRecord[]>('/api/eval/records'),
   run: (id: string) => call<Run & { events: RunEvent[] }>(`/api/runs/${id}`),
 }
 

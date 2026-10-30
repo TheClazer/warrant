@@ -380,10 +380,19 @@ def create_app(
 
     @app.get("/api/eval/summary")
     def eval_summary() -> dict:
-        path = project_path("eval", "results", "summary.json")
+        path = project_path("eval", "evidence", "summary.json")
         if not path.is_file():
             return {"available": False}
         return {"available": True, **json.loads(path.read_text(encoding="utf-8"))}
+
+    @app.get("/api/eval/records")
+    def eval_records() -> list[dict]:
+        records = [json.loads(p.read_text(encoding="utf-8")) for p in project_path("eval", "evidence", "records").glob("*.json")]
+        for record in records:
+            record["openshell_log"] = [line for line in record["openshell_log"] if "HTTP:" in line]
+            record.pop("enforcer_decisions", None)
+            record.pop("answer", None)
+        return sorted(records, key=lambda r: (r["scenario"], r["setup"], r["repeat"]))
 
     @app.get("/api/runs")
     def runs(limit: int = 30, _: str = Depends(owner)) -> list[dict]:

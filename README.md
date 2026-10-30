@@ -47,7 +47,8 @@ With real services, from 26 October 2026. Details in `docs/verification/openshel
 |---|---|
 | Nemotron 3 Super drafts warrants for 4 missions | Minimal capabilities chosen each time; writing missions marked "ask every run"; checker passed |
 | Warrant policy inside a real OpenShell 0.1.5 sandbox | Allowed GET returned 200; POST, an unlisted path and an unlisted host were denied, with OpenShell's own reasons |
-| Over-reach evaluation, 5 scenarios x 2 repeats, OpenShell enforcing the warrant runs (30 October) | Broad access: 24 of 24 off-warrant requests went through. Warrant: 0 of 17. Expected fact in 4 of 10 answers in both |
+| Over-reach evaluation, 5 scenarios x 2 repeats, OpenShell enforcing the warrant runs (30 October) | Broad access: 24 of 24 off-warrant requests went through. Warrant: 0 of 17. Expected fact in 4 of 10 answers in both. Summary only; raw logs were not kept |
+| Same evaluation with raw records kept (31 October) | Broad access: 19 of 19. Warrant: 0 of 15. The portal's own log agrees: 19 and 0 arrived. Raw logs and a recount script are in `eval/evidence`. Expected fact in 4 of 10 answers in both |
 | Live GitHub API in an OpenShell sandbox (30 October) | Reading issues allowed; OpenShell blocked the agent's attempt to post one. No token was set |
 | Full mission under OpenShell | Fresh sandbox per run, agent read only the 2 warrant pages from inside it, Nemotron wrote a correct brief, sandbox deleted |
 

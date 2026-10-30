@@ -51,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--scenarios", default="eval/scenarios.yaml")
     ev.add_argument("--out", default="eval/results")
     ev.add_argument("--repeats", type=int, default=2)
+    ev.add_argument("--portal-log", help="the portal's access log; also saves a full record of each run")
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -137,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
             repeats=args.repeats,
             enforcer=settings.enforcer,
             inference_url=settings.token_factory_url,
+            portal_log=Path(args.portal_log) if args.portal_log else None,
         )
         print(json.dumps(summary["setups"], indent=2))
         return 0

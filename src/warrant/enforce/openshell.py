@@ -179,5 +179,11 @@ def decisions(sandbox: Sandbox, since: str = "10m") -> list[dict]:
     return parse_ocsf(result.stdout)
 
 
+def raw_log(sandbox: Sandbox, since: str = "60m") -> list[str]:
+    """OpenShell's own decision lines, unprocessed, so they can be kept after the sandbox is gone."""
+    result = _run(["logs", sandbox.name, "--since", since, "--source", "sandbox"], timeout=60)
+    return [line.strip() for line in result.stdout.splitlines() if "[OCSF" in line]
+
+
 def delete(sandbox: Sandbox) -> None:
     _run(["sandbox", "delete", sandbox.name], timeout=120)

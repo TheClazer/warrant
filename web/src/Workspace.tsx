@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { api, Capability, EvalSummary, Mission, Run, RunEvent, Site, streamRun, Warrant } from './api'
+import { api, Capability, EvalRecord, EvalSummary, Mission, Run, RunEvent, Site, streamRun, Warrant } from './api'
 import { NebiusLogo, NvidiaMark } from './Logos'
 import CallChip from './rb/CallChip.jsx'
 import { Answer, ago, Skeleton, Status, Tag } from './ui'
@@ -491,16 +491,20 @@ export function Sites() {
 
 export function Evidence() {
   const [data, setData] = useState<EvalSummary | null>(null)
-  useEffect(() => { api.evalSummary().then(setData).catch(() => setData({ available: false })) }, [])
+  const [records, setRecords] = useState<EvalRecord[]>([])
+  useEffect(() => {
+    api.evalSummary().then(setData).catch(() => setData({ available: false }))
+    api.evalRecords().then(setRecords).catch(() => setRecords([]))
+  }, [])
   const rows: [string, string][] = [['broad', 'Broad access'], ['warrant', 'Warrant']]
   const ready = data?.available ? data : null
   return (
     <div className="page">
       <h1>Evidence</h1>
-      <p className="lede">Each mission asks for more than its approved warrant, so a faithful agent tries to reach further. The same missions run with broad access and under the warrant. Every number comes from recorded runs.</p>
+      <p className="lede">Each mission asks for more than its approved warrant, so a faithful agent tries to reach further. The same missions run with broad access and under the warrant. The totals below are test results. The records under them are the evidence: OpenShell's own log and the portal's own log for each run.</p>
       <div className="scroll-x">
         <table className="ev-table">
-          <thead><tr><th>Setup</th><th>Runs</th><th>Off-warrant tried</th><th>Went through</th><th>Expected fact found</th><th>Nemotron calls</th><th>Tokens</th></tr></thead>
+          <thead><tr><th>Setup</th><th>Runs</th><th>Off-warrant tried</th><th>Went through</th><th>Portal received</th><th>Expected fact found</th><th>Nemotron calls</th><th>Tokens</th></tr></thead>
           <tbody>
             {rows.map(([key, label]) => {
               const r = ready?.setups[key]
@@ -510,6 +514,7 @@ export function Evidence() {
                   <td>{r?.runs ?? '—'}</td>
                   <td>{r?.outside_requests_attempted ?? '—'}</td>
                   <td className="strong">{r ? r.outside_requests_that_went_through : '—'}</td>
+                  <td className="strong">{r?.outside_requests_the_portal_received ?? '—'}</td>
                   <td>{r ? `${r.missions_completed} / ${r.runs}` : '—'}</td>
                   <td>{r?.model_calls ?? '—'}</td>
                   <td>{r ? r.tokens.toLocaleString() : '—'}</td>
@@ -520,9 +525,30 @@ export function Evidence() {
         </table>
       </div>
       {ready && <p className="mono dim ev-meta">{ready.scenarios} frozen scenarios × {ready.repeats} repeats · {ready.model} · warrant runs enforced by {ready.enforcer_for_warrant_setup === 'openshell' ? 'NVIDIA OpenShell' : 'the built-in enforcer'} · scenarios sha256 {ready.scenarios_sha256.slice(0, 12)}</p>}
+      <h2 className="ev-h">Check it yourself</h2>
+      <p>The recount uses the Python standard library and no Warrant code. It reads the raw files and compares them with each policy.</p>
+      <pre className="ev-cmd">{'git clone https://github.com/TheClazer/warrant\ncd warrant\npython eval/evidence/verify.py'}</pre>
+      <p><a href="https://github.com/TheClazer/warrant/tree/main/eval/evidence" target="_blank" rel="noreferrer">Raw files on GitHub</a>. You can also rerun the evaluation with your own Nebius key; the steps are in that folder's README.</p>
+      <h2 className="ev-h">All {records.length} runs</h2>
+      <div className="ev-runs">
+        {records.map(r => (
+          <details key={r.run_id} className="ev-run">
+            <summary>
+              <span><b>{r.scenario}</b> <small className="mono dim">{r.setup === 'warrant' ? 'warrant' : 'broad access'}, run {r.repeat + 1}</small></span>
+              <span className="mono">{r.outside_requests_the_portal_received} of {r.attempts_outside_warrant} off-warrant arrived</span>
+            </summary>
+            <p className="mono dim">{r.run_id}{r.sandbox ? ` · sandbox ${r.sandbox}` : ' · no sandbox'}</p>
+            {r.openshell_log.length > 0 && <div className="log"><div className="log-h mono"><i />OpenShell's log</div>{r.openshell_log.map((line, i) => <div key={i} className={`log-raw ${line.includes('DENIED') ? 'deny' : ''}`}>{line}</div>)}</div>}
+            <div className="log"><div className="log-h mono"><i />Portal's access log</div>{r.portal_received.map((e, i) => <div key={i} className="log-raw">{e.method} {e.path} {e.status}</div>)}</div>
+            {r.openshell_policy && <details className="ev-policy"><summary>Policy OpenShell enforced</summary><pre>{r.openshell_policy}</pre></details>}
+          </details>
+        ))}
+      </div>
       <div className="limits">
         <h2>What this does not show</h2>
         <ul>
+          <li>We ran this ourselves. The files can be recounted, but nobody independent watched the run, and a git commit does not prove files were not edited before committing. Rerunning it is the stronger check.</li>
+          <li>The video shows an earlier run of the same scenarios (24 of 24, 0 of 17). Its summary is in <code>eval/results</code>, but its raw logs were not kept, so it cannot be recounted.</li>
           <li>In the Warrant setup, NVIDIA OpenShell enforced each run in its own sandbox. The broad-access setup runs without a sandbox, which is the point of comparison.</li>
           <li>This test uses a fictional portal, and covers over-reach, not planted prompt-injection pages.</li>
           <li>The expected fact appeared in {ready ? `${ready.setups.warrant.missions_completed} of ${ready.setups.warrant.runs}` : 'few'} answers in both setups. That is an agent-quality limit, on a small sample.</li>

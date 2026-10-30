@@ -140,6 +140,11 @@ def execute(
         if box is not None:
             from .enforce import openshell
 
+            try:
+                policy = box.policy_path.read_text(encoding="utf-8")
+                emit("enforcer_log", {"sandbox": box.name, "lines": openshell.raw_log(box), "policy": policy})
+            except Exception as exc:  # losing the log must not leave a sandbox running
+                emit("step", {"text": f"Could not save the OpenShell log: {type(exc).__name__}"})
             openshell.delete(box)
             emit("step", {"text": f"Deleted sandbox {box.name}"})
         usage = ledger.summary()

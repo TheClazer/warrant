@@ -175,3 +175,10 @@ def test_narrowing_removes_capabilities_and_cannot_add(settings):
     assert narrowed["status"] == "checked" and narrowed["fingerprint"] != w["fingerprint"]
     assert c.post(f"/api/warrants/{w['id']}/approve").status_code == 409  # the old draft is expired
     assert c.post(f"/api/warrants/{narrowed['id']}/approve").json()["status"] == "approved"
+
+
+def test_published_evidence_records_are_public(settings):
+    c = _client(replace(settings, admin_token="x" * 32), Scripted([]))
+    records = c.get("/api/eval/records").json()
+    assert len(records) == 20
+    assert all(r["outside_requests_the_portal_received"] == 0 for r in records if r["setup"] == "warrant")
