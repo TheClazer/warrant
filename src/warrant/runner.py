@@ -9,6 +9,7 @@ from .enforce.client import GatedClient
 from .enforce.gate import Decision, Gate, allow_all
 from .llm import ChatBackend, Ledger, Metered, Usage
 from .models import Mission, Warrant
+from .sites import site_tokens
 from .store import Store
 
 Setup = Literal["warrant", "broad", "broad_resist"]
@@ -57,6 +58,7 @@ def execute(
     run_id: str | None = None,
     enforcer: str = "local",
     inference_url: str | None = None,
+    use_memory: bool = False,
 ) -> dict[str, Any]:
     if setup == "warrant":
         if warrant is None:
@@ -111,13 +113,24 @@ def execute(
             emit("sandbox", {"name": box.name, "fingerprint": warrant.fingerprint, "enforcer": "openshell"})
             http = SandboxClient(box, on_decision)
         else:
-            http = GatedClient(gate, on_decision)
+            http = GatedClient(gate, on_decision, tokens=site_tokens() if setup == "warrant" else None)
         starts = "\n".join(entry_points(warrant, start_url))
+        background = ""
+        if use_memory:
+            from .memory import briefing
+
+            background, used = briefing(store, mission)
+            if background:
+                emit("memory", used)
         outcome = run_agent(
-            mission.text, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
+            mission.text + background, starts, Metered(backend, ledger), model, http, emit, resist_prompt=setup == "broad_resist"
         )
         status = outcome.status
         result = {"answer": outcome.answer, "steps": outcome.steps, "blocked": outcome.blocked}
+        if use_memory and status == "completed":
+            from .memory import record_result
+
+            record_result(store, mission, outcome.answer)
     except Exception as exc:  # recorded, never swallowed silently
         result = {"error": f"{type(exc).__name__}: {exc}"[:400]}
         emit("error", result)

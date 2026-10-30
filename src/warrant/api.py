@@ -21,6 +21,7 @@ from .checker import check
 from .compiler import CompileError, compile_warrant, narrow_warrant
 from .config import Settings, get_settings
 from .llm import ChatBackend, ModelUnavailable, TokenFactory
+from .memory import add_note, apply_refusals, record_refusals
 from .models import Mission, now
 from .policy import render_policy
 from .runner import RunRefused, ensure_runnable, execute
@@ -58,6 +59,15 @@ class RunRequest(BaseModel):
     approve_this_run: bool = False
 
 
+class NewNote(BaseModel):
+    text: Annotated[str, Field(min_length=1, max_length=300)]
+
+
+class NewSkill(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=60)]
+    mission_id: str
+
+
 def project_path(*parts: str) -> Path:
     """A path in the project: WARRANT_ROOT if set, else the working directory, else the source checkout."""
     root = os.environ.get("WARRANT_ROOT")
@@ -88,7 +98,8 @@ def create_app(
         return response
     state: dict[str, Any] = {"backend": backend}
 
-    if not db.missions():
+    has_demo = any(s.id == "portal" for s in sites)
+    if has_demo and not db.missions():
         for title, text, schedule in SEED:
             db.save_mission(Mission(title=title, text=text, schedule=schedule))
 
@@ -119,6 +130,7 @@ def create_app(
         return {
             **cfg.public(),
             "auth_required": bool(cfg.admin_token),
+            "demo": has_demo,
             "spend_24h_usd": round(db.spend_since(day_start), 6),
         }
 
@@ -173,6 +185,7 @@ def create_app(
             w = compile_warrant(m, catalogue, model_backend(), cfg.planner_model)
         except CompileError as exc:
             raise HTTPException(502, str(exc)) from None
+        w = apply_refusals(db, w, m)
         verdict = check(w, m, catalogue)
         w.status = "checked" if verdict.ok else "rejected_by_checker"
         w.checker_findings = verdict.findings
@@ -202,6 +215,7 @@ def create_app(
             raise HTTPException(409, "Only a warrant awaiting a decision can be narrowed.")
         new = narrow_warrant(old, body.remove)
         m = get_mission(new.mission_id)
+        record_refusals(db, m, body.remove, catalogue)
         verdict = check(new, m, catalogue)
         new.status = "checked" if verdict.ok else "rejected_by_checker"
         new.checker_findings = verdict.findings
@@ -243,6 +257,7 @@ def create_app(
                 run_id=rid,
                 enforcer=cfg.enforcer,
                 inference_url=cfg.token_factory_url,
+                use_memory=True,
             ),
             daemon=True,
         ).start()
@@ -276,6 +291,60 @@ def create_app(
             raise HTTPException(429, "Daily run limit reached for this demo. Please watch the recorded demo video.")
         rid = launch(m, w, who, body.approve_this_run)
         return {"run_id": rid}
+
+    @app.get("/api/memory")
+    def list_memory() -> list[dict]:
+        return [m for m in db.memories() if m["kind"] != "last"] + [
+            {**m, "text": m["text"][:200]} for m in db.memories("last")
+        ]
+
+    @app.post("/api/memory", status_code=201)
+    def add_memory(body: NewNote, _: str = Depends(owner)) -> dict:
+        try:
+            return add_note(db, body.text)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+
+    @app.delete("/api/memory/{memory_id}")
+    def forget_memory(memory_id: str, _: str = Depends(owner)) -> dict:
+        db.forget(memory_id)
+        return {"ok": True}
+
+    def skill_view(skill: dict) -> dict:
+        m = db.mission(skill["mission_id"])
+        w = db.warrant(skill["warrant_id"])
+        return {**skill, "text": m.text, "warrant": w.view()}
+
+    @app.get("/api/skills")
+    def list_skills() -> list[dict]:
+        return [skill_view(s) for s in db.skills()]
+
+    @app.post("/api/skills", status_code=201)
+    def save_skill(body: NewSkill, _: str = Depends(owner)) -> dict:
+        w = db.latest_warrant(get_mission(body.mission_id).id)
+        if w is None or w.status != "approved":
+            raise HTTPException(409, "Approve a warrant for this job before saving it as a skill.")
+        return skill_view(db.save_skill(body.name.strip(), body.mission_id, w.id))
+
+    @app.delete("/api/skills/{name}")
+    def delete_skill(name: str, _: str = Depends(owner)) -> dict:
+        db.delete_skill(name)
+        return {"ok": True}
+
+    @app.post("/api/skills/{name}/runs", status_code=202)
+    def run_skill(name: str, body: RunRequest, who: str = Depends(owner)) -> dict:
+        try:
+            skill = db.skill(name)
+        except KeyError:
+            raise HTTPException(404, "Skill not found") from None
+        m, w = get_mission(skill["mission_id"]), db.warrant(skill["warrant_id"])
+        try:
+            ensure_runnable(w, m, body.approve_this_run)
+        except RunRefused as exc:
+            raise HTTPException(409, str(exc)) from None
+        if db.count_since("runs", now() - 86400) >= cfg.daily_run_cap:
+            raise HTTPException(429, "Daily run limit reached for this demo.")
+        return {"run_id": launch(m, w, who, body.approve_this_run)}
 
     @app.get("/api/eval/summary")
     def eval_summary() -> dict:

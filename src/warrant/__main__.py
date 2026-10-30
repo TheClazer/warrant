@@ -19,6 +19,22 @@ def main(argv: list[str] | None = None) -> int:
     tri.add_argument("job", nargs="?", help="what the agent should do on the portal")
     tri.add_argument("--remove", action="append", default=[], help="capability ID to take away, for example portal.read.grades")
     tri.add_argument("--yes", action="store_true", help="approve without asking")
+    tri.add_argument("--save-as", metavar="NAME", help="save this job and its warrant as a reusable skill")
+    rem = sub.add_parser("remember", help="add a note the agent gets as background (grants no permissions)")
+    rem.add_argument("text")
+    mem = sub.add_parser("memory", help="list what Warrant remembers")
+    mem.add_argument("--forget", metavar="ID", help="remove one entry")
+    sit = sub.add_parser("site", help="add, list or remove the real sites an agent may ever be granted")
+    sit.add_argument("action", choices=["add", "list", "remove"])
+    sit.add_argument("name", nargs="?")
+    sit.add_argument("url", nargs="?")
+    sit.add_argument("--read", action="append", default=[], metavar="PATH", help="a path it may GET; repeat as needed")
+    sit.add_argument("--write", action="append", default=[], metavar="PATH", help="a path it may POST to; asks every run")
+    sit.add_argument("--token-env", metavar="VAR", help="environment variable holding a token for this site")
+    skl = sub.add_parser("skill", help="list, run or delete saved skills")
+    skl.add_argument("action", choices=["list", "run", "delete"])
+    skl.add_argument("name", nargs="?")
+    skl.add_argument("--yes", action="store_true", help="allow a skill that changes something, for this run")
     sub.add_parser("prove", help="show a misbehaving agent with and without a warrant (no AI, no key)")
     guard = sub.add_parser("guard", help="run a local program with its web traffic limited to hosts you allow")
     guard.add_argument("--allow", action="append", default=[], metavar="HOST", help="allowed host, or *.example.com")
@@ -58,6 +74,21 @@ def main(argv: list[str] | None = None) -> int:
 
         return run_prove()
 
+    if args.command == "site":
+        from .local import run_site
+
+        return run_site(args.action, args.name, args.url, args.read, args.write, args.token_env)
+
+    if args.command == "remember":
+        from .local import run_remember
+
+        return run_remember(args.text)
+
+    if args.command == "memory":
+        from .local import run_memory
+
+        return run_memory(args.forget)
+
     if args.command == "guard":
         from .local import run_guard
 
@@ -69,7 +100,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "try":
         from .local import run_try
 
-        return run_try(settings, args.job, args.remove, args.yes)
+        return run_try(settings, args.job, args.remove, args.yes, save_as=args.save_as)
+    if args.command == "skill":
+        from .local import run_skill
+
+        return run_skill(settings, args.action, args.name, args.yes)
     if args.command == "status":
         import json
 

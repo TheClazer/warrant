@@ -1,7 +1,6 @@
 import { GuardFlow, Terminal } from './Terminal'
 import { Code } from './ui'
 
-const REPO = 'https://github.com/TheClazer/warrant'
 
 const PROVE = `uvx --from git+https://github.com/TheClazer/warrant warrant prove`
 const TEST = `git clone https://github.com/TheClazer/warrant && cd warrant
@@ -19,19 +18,14 @@ with guard(allow=["example.com"]) as report:
     httpx.get("https://www.iana.org/")         # raises httpx.ProxyError
 
 print(report.blocked)`
-const SITE = `git clone ${REPO} && cd warrant
+const SITE = `uv tool install git+https://github.com/TheClazer/warrant
 
-# src/warrant/sites.py: add your site to build_registry()
-Site(
-    id="wiki",
-    name="Team wiki",
-    base_url="https://wiki.example.com",
-    capabilities=(
-        _cap("wiki", "https://wiki.example.com", "wiki.read.pages",
-             "Read wiki pages", "Read pages on the team wiki",
-             ("GET",), ("/pages", "/pages/**")),
-    ),
-)`
+warrant site add github https://api.github.com \\
+  --read /repos/my-name/my-repo/issues \\
+  --write /repos/my-name/my-repo/issues \\
+  --token-env GITHUB_TOKEN
+
+warrant try "What are the newest issues on my repository?"`
 const OPENSHELL = `# Linux or WSL 2, with Docker Engine and NVIDIA OpenShell installed
 docker build -t warrant-sandbox:dev -f deploy/sandbox.Dockerfile deploy
 WARRANT_ENFORCER=openshell uvx --from git+https://github.com/TheClazer/warrant warrant try`
@@ -82,8 +76,8 @@ export function UseIt() {
       <section className="use-step">
         <span className="step-n">04</span>
         <div>
-          <h2>Add a site you use</h2>
-          <p>List what an agent may ever do on it. Nemotron can only pick from this list, so it can't invent a site or a broader path. Then <code>warrant try</code> or <code>warrant serve</code> can use it.</p>
+          <h2>Point it at your real sites</h2>
+          <p>Say what an agent may ever do on a site or API. Once you've added one, the fictional portal is gone, and every job runs on your sites. Nemotron can only pick from your list. A token stays in an environment variable, is never saved, and is only sent to that site on requests the warrant allowed.</p>
           <Code text={SITE} />
         </div>
       </section>
@@ -100,8 +94,10 @@ export function UseIt() {
       <section className="limits">
         <h2>What it can't do yet</h2>
         <ul>
-          <li>The app on this website uses Warrant's built-in enforcer on our server, because OpenShell needs its own Docker host. Its portal is fictional.</li>
-          <li>The agent has no login handling, so it can't sign in to your real accounts yet.</li>
+          <li>The app on this website is a shared demo: it uses a fictional portal and the built-in enforcer. For real use, run Warrant on your own machine.</li>
+          <li>It hasn't had an outside security review or real users yet, so treat it as early software.</li>
+          <li>Real sites work through APIs and pages reachable with a token or no sign-in. It can't log in through a website's sign-in page yet.</li>
+          <li>Tokens are only sent by the built-in enforcer for now. Inside an OpenShell sandbox, runs work on sites that need no token.</li>
           <li><code>warrant guard</code> is cooperative: a program can ignore proxy settings. For HTTPS it limits hosts, not individual pages. OpenShell has neither gap.</li>
           <li>OpenShell enforcement has been tested with Warrant's own agent and with curl, not yet with other agents such as Hermes.</li>
           <li>A warrant limits where requests can go. It doesn't stop a page from misleading the agent's answer.</li>

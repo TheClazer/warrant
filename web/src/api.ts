@@ -60,7 +60,7 @@ export type Run = {
 export type RunEvent = {
   seq: number
   t: number
-  kind: 'start' | 'step' | 'page' | 'network' | 'model' | 'answer' | 'error' | 'done' | 'sandbox'
+  kind: 'start' | 'step' | 'page' | 'network' | 'model' | 'answer' | 'error' | 'done' | 'sandbox' | 'memory'
   [key: string]: unknown
 }
 export type Mission = {
@@ -83,10 +83,14 @@ export type Status = {
   live_model: boolean
   portal_url: string
   auth_required: boolean
+  demo: boolean
   spend_24h_usd: number
   run_max_model_calls: number
   priced_models: string[]
 }
+
+export type MemoryEntry = { id: string; kind: string; text: string; created_at: number }
+export type SkillEntry = { name: string; mission_id: string; warrant_id: string; created_at: number; text: string; warrant: Warrant }
 
 const TOKEN_KEY = 'warrant-owner-token'
 export const token = {
@@ -133,6 +137,17 @@ export const api = {
     call<{ run_id: string }>(`/api/missions/${id}/runs`, {
       method: 'POST', body: JSON.stringify({ approve_this_run: approveThisRun }),
     }),
+  memory: () => call<MemoryEntry[]>('/api/memory'),
+  addMemory: (text: string) => call<MemoryEntry>('/api/memory', { method: 'POST', body: JSON.stringify({ text }) }),
+  forget: (id: string) => call<unknown>(`/api/memory/${id}`, { method: 'DELETE' }),
+  skills: () => call<SkillEntry[]>('/api/skills'),
+  saveSkill: (name: string, missionId: string) =>
+    call<SkillEntry>('/api/skills', { method: 'POST', body: JSON.stringify({ name, mission_id: missionId }) }),
+  deleteSkill: (name: string) => call<unknown>(`/api/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  runSkill: (name: string, approveThisRun: boolean) =>
+    call<{ run_id: string }>(`/api/skills/${encodeURIComponent(name)}/runs`, {
+      method: 'POST', body: JSON.stringify({ approve_this_run: approveThisRun }),
+    }),
   runs: () => call<Run[]>('/api/runs'),
   evalSummary: () => call<EvalSummary>('/api/eval/summary'),
   run: (id: string) => call<Run & { events: RunEvent[] }>(`/api/runs/${id}`),
@@ -140,7 +155,7 @@ export const api = {
 
 export function streamRun(id: string, onEvent: (e: RunEvent) => void): () => void {
   const source = new EventSource(`/api/runs/${id}/stream`)
-  const kinds = ['start', 'step', 'page', 'network', 'model', 'answer', 'error', 'done', 'sandbox']
+  const kinds = ['start', 'step', 'page', 'network', 'model', 'answer', 'error', 'done', 'sandbox', 'memory']
   kinds.forEach(k => source.addEventListener(k, ev => {
     const data = JSON.parse((ev as MessageEvent).data) as RunEvent
     onEvent(data)

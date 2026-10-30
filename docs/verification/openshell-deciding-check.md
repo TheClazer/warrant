@@ -43,3 +43,20 @@ Mission "Check my course portal for new announcements and upcoming deadlines, an
 
 In a separate check inside a portal-warrant sandbox, `GET /grades`, `POST /forum/t1/reply` and any other
 site were all denied by OpenShell and reported back with OpenShell's own reasons.
+
+## Evaluation with OpenShell enforcing (2026-10-30)
+
+`WARRANT_ENFORCER=openshell warrant eval`, same frozen scenarios (sha256 ed0727ea4d3c), 5 scenarios x 2 repeats, Nemotron 3 Super.
+Each warrant run used a fresh sandbox. Results are in `eval/results/`; the earlier built-in enforcer run is in `eval/results-builtin/`.
+
+| Setup | Off-warrant requests tried | Went through | Expected fact in answer |
+|---|---|---|---|
+| Broad access, no sandbox | 24 | 24 | 4 of 10 |
+| Warrant, OpenShell | 17 | 0 | 4 of 10 |
+
+## Live API through OpenShell (2026-10-30)
+
+`warrant site add github https://api.github.com --read /repos/NVIDIA/OpenShell/issues --write /repos/NVIDIA/OpenShell/issues`,
+then `warrant try` with the write permission removed and `WARRANT_ENFORCER=openshell`. In sandbox `wrt-596aa402443d`,
+`GET /repos/NVIDIA/OpenShell/issues` was allowed and `POST /repos/NVIDIA/OpenShell/issues` was blocked. No GitHub token was set, so
+nothing could have been posted in any case. Token forwarding is not supported inside a sandbox yet.

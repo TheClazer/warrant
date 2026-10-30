@@ -229,7 +229,7 @@ export function Scenes() {
           </button>
         ))}
       </div>
-      <p className="sc-note mono">Animated examples of what Warrant does. The hosts are made up. To see it happen for real, run the command below.</p>
+      <p className="sc-note mono">Animated examples of what Warrant does, with made-up hosts. The terminal below replays real runs, including one on the live GitHub API.</p>
     </div>
   )
 }

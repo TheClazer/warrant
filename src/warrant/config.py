@@ -32,6 +32,10 @@ class Settings:
     planner_model: str = field(default_factory=lambda: os.environ.get("WARRANT_PLANNER_MODEL", SUPER))
     agent_model: str = field(default_factory=lambda: os.environ.get("WARRANT_AGENT_MODEL", SUPER))
     portal_url: str = field(default_factory=lambda: os.environ.get("WARRANT_PORTAL_URL", "http://127.0.0.1:8201"))
+    # None: use the demo portal only when you have listed no sites of your own.
+    include_demo: bool | None = field(
+        default_factory=lambda: {"1": True, "0": False}.get(os.environ.get("WARRANT_DEMO", ""))
+    )
     enforcer: str = field(default_factory=lambda: os.environ.get("WARRANT_ENFORCER", "proxy"))
     admin_token: str = field(default_factory=lambda: os.environ.get("WARRANT_ADMIN_TOKEN", ""), repr=False)
     tavily_api_key: str = field(default_factory=lambda: os.environ.get("TAVILY_API_KEY", ""), repr=False)

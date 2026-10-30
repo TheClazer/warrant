@@ -18,14 +18,16 @@ from .compiler import CompileError, compile_warrant, narrow_warrant
 from .config import Settings
 from .guard import Seen, run_guarded
 from .llm import ChatBackend, TokenFactory
+from .memory import add_note, apply_refusals, record_refusals
 from .models import Mission, Warrant
 from .policy import render_policy
 from .runner import execute
-from .sites import build_registry, capability_index
+from .sites import _user_sites, add_site, build_registry, capability_index, remove_site, sites_file
 from .store import Store
 
 DEFAULT_JOB = "Brief me on this week's announcements and tell me my latest grades."
 EVERY_RUN = " (asks you every run)"
+PORTAL_PORT = 8201  # fixed, so a warrant saved as a skill still matches on the next run
 
 
 def _paint(code: str, text: str) -> str:
@@ -91,8 +93,11 @@ def _start_demo_portal(for_sandbox: bool = False) -> str:
 
     bind = "0.0.0.0" if for_sandbox else "127.0.0.1"
     address = _own_address() if for_sandbox else "127.0.0.1"
-    port = free_port(bind)
-    serve(uvicorn.Server(uvicorn.Config(create_portal(), host=bind, port=port, log_level="warning")))
+    port = PORTAL_PORT
+    with socket.socket() as probe:
+        already_up = probe.connect_ex(("127.0.0.1", port)) == 0
+    if not already_up:
+        serve(uvicorn.Server(uvicorn.Config(create_portal(), host=bind, port=port, log_level="warning")))
     return f"http://{address}:{port}"
 
 
@@ -149,6 +154,8 @@ def _follow(store: Store, run_id: str, portal_host: str, worker: threading.Threa
                     print(f"  {blocked('BLOCKED')}  {target}  {dim('not in this warrant')}")
                 else:
                     print(f"  {allowed('ALLOWED')}  {target}")
+            elif event["kind"] == "memory":
+                print(dim(f"  Using memory: {event.get('notes', 0)} notes" + (", and your last result" if event.get("last") else "")))
             elif event["kind"] == "sandbox":
                 print(dim(f"  NVIDIA OpenShell sandbox {event['name']}"))
             elif event["kind"] == "error":
@@ -174,11 +181,54 @@ def _report(events: list[dict], portal_host: str) -> None:
         for event in stopped:
             host = "" if event["host"] == portal_host else event["host"]
             print(f"  Without it: {event['method']} {host}{event['path']} would have gone through.")
-        print(f"  With it:    {blocked('stopped before being sent.')} The agent never got that data.")
+        print(f"  With it:    {blocked('stopped before being sent.')} Nothing reached that address.")
     else:
         print("  Without it: the agent would have had your full access.")
         print(f"  With it:    it stayed inside its warrant, with {len(network)} allowed requests.")
     print(dim(f"\n  {len(models)} Nemotron calls, {tokens:,} tokens"))
+
+
+def _data_dir() -> Path:
+    return Path(os.environ["WARRANT_DATA_DIR"]) if "WARRANT_DATA_DIR" in os.environ else Path.home() / ".warrant"
+
+
+def _ask_key(settings: Settings) -> str | None:
+    key = settings.nebius_api_key.strip()
+    if key:
+        return key
+    if not sys.stdin.isatty():
+        print("Set NEBIUS_API_KEY to your Nebius Token Factory key, then run this again.", file=sys.stderr)
+        return None
+    key = getpass.getpass("Nebius Token Factory key (used for this run, not saved): ").strip()
+    if not key:
+        print("A key is needed to call Nemotron.", file=sys.stderr)
+    return key or None
+
+
+def _run_and_report(store: Store, mission: Mission, warrant: Warrant, settings: Settings, model_backend: ChatBackend) -> None:
+    portal_host = urlsplit(settings.portal_url).hostname or ""
+    print(bold("\nRunning the agent"))
+    run_id = store.start_run(mission.id, warrant.id, "warrant", "owner")
+    worker = threading.Thread(
+        target=execute,
+        kwargs=dict(
+            store=store,
+            mission=mission,
+            warrant=warrant,
+            start_url=settings.portal_url,
+            backend=model_backend,
+            model=settings.agent_model,
+            approved_this_run=True,
+            max_model_calls=settings.run_max_model_calls,
+            run_id=run_id,
+            enforcer=settings.enforcer,
+            inference_url=settings.token_factory_url,
+            use_memory=True,
+        ),
+        daemon=True,
+    )
+    worker.start()
+    _report(_follow(store, run_id, portal_host, worker), portal_host)
 
 
 def run_try(
@@ -187,30 +237,36 @@ def run_try(
     remove: list[str] | None = None,
     yes: bool = False,
     backend: ChatBackend | None = None,
+    save_as: str | None = None,
 ) -> int:
     _setup_output()
     key = settings.nebius_api_key.strip()
-    if backend is None and not key:
-        if not sys.stdin.isatty():
-            print("Set NEBIUS_API_KEY to your Nebius Token Factory key, then run this again.", file=sys.stderr)
-            return 2
-        key = getpass.getpass("Nebius Token Factory key (used for this run, not saved): ").strip()
+    if backend is None:
+        key = _ask_key(settings) or ""
         if not key:
-            print("A key is needed to call Nemotron.", file=sys.stderr)
             return 2
-    data_dir = Path(os.environ["WARRANT_DATA_DIR"]) if "WARRANT_DATA_DIR" in os.environ else Path.home() / ".warrant"
-    portal = settings.portal_url if "WARRANT_PORTAL_URL" in os.environ else _start_demo_portal(settings.enforcer == "openshell")
-    settings = replace(settings, nebius_api_key=key, portal_url=portal, data_dir=data_dir)
-    portal_host = urlsplit(portal).hostname or ""
+    data_dir = _data_dir()
+    use_demo = not _user_sites() if settings.include_demo is None else settings.include_demo
+    if not use_demo and not job:
+        print('You have listed your own sites, so say what the job is: warrant try "Read my newest issues"', file=sys.stderr)
+        return 2
+    portal = settings.portal_url
+    if use_demo and "WARRANT_PORTAL_URL" not in os.environ:
+        portal = _start_demo_portal(settings.enforcer == "openshell")
+    settings = replace(settings, nebius_api_key=key, portal_url=portal, data_dir=data_dir, include_demo=use_demo)
     catalogue = capability_index(build_registry(settings))
     store = Store(data_dir / "warrant.sqlite")
     model_backend = backend or TokenFactory(settings)
 
     text = job or DEFAULT_JOB
     print(bold("WARRANT") + dim("  permissions for personal AI agents"))
-    print(dim(f"Fictional course portal running at {portal}. No real accounts are involved.\n"))
+    if use_demo:
+        print(dim(f"No sites of your own yet, so this uses a fictional course portal at {portal}."))
+        print(dim("Add a real one with: warrant site add NAME URL --read /path\n"))
+    else:
+        print(dim(f"Your sites: {', '.join(sorted({c.site for c in catalogue.values()}))}\n"))
     print(f"{bold('Job')}  {text}")
-    print(dim(f"\nWithout Warrant, an agent with your access could do {len(catalogue)} things here and reach any website."))
+    print(dim(f"\nWithout Warrant, an agent with your access could do all {len(catalogue)} listed things and reach any website."))
     print("\nAsking NVIDIA Nemotron what this job needs...")
 
     mission = store.save_mission(Mission(title=text[:80], text=text))
@@ -224,6 +280,11 @@ def run_try(
         for note in draft.notes:
             print(dim(f"  {note}"))
         return 1
+    draft = apply_refusals(store, draft, mission)
+    for note in draft.notes:
+        if note.startswith("Remembered:"):
+            print(dim(f"\n{note}"))
+    before = {g.capability.id for g in draft.grants}
     draft.status = "checked"
     warrant = _review(draft, catalogue, mission, remove or [], yes)
     if warrant is None:
@@ -231,31 +292,85 @@ def run_try(
         return 0
     store.save_warrant(warrant)
 
-    print(bold("\nRunning the agent"))
-    run_id = store.start_run(mission.id, warrant.id, "warrant", "owner")
-    worker = threading.Thread(
-        target=execute,
-        kwargs=dict(
-            store=store,
-            mission=mission,
-            warrant=warrant,
-            start_url=portal,
-            backend=model_backend,
-            model=settings.agent_model,
-            approved_this_run=True,
-            max_model_calls=settings.run_max_model_calls,
-            run_id=run_id,
-            enforcer=settings.enforcer,
-            inference_url=settings.token_factory_url,
-        ),
-        daemon=True,
-    )
-    worker.start()
-    _report(_follow(store, run_id, portal_host, worker), portal_host)
+    record_refusals(store, mission, sorted(before - {g.capability.id for g in warrant.grants}), catalogue)
+    _run_and_report(store, mission, warrant, settings, model_backend)
     policy_path = data_dir / "policies" / f"{warrant.id}.yaml"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text(render_policy(warrant, inference_url=settings.token_factory_url), encoding="utf-8")
     print(dim(f"  OpenShell policy for this warrant: {policy_path}"))
+    if save_as:
+        store.save_skill(save_as, mission.id, warrant.id)
+        print(f"\nSaved as a skill. Run it again with the same warrant: {bold(f'warrant skill run {save_as}')}")
+    return 0
+
+
+def run_remember(text: str) -> int:
+    _setup_output()
+    try:
+        entry = add_note(Store(_data_dir() / "warrant.sqlite"), text)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"Remembered ({entry['id']}). The agent gets this as background. It grants no permissions.")
+    return 0
+
+
+def run_memory(forget: str | None) -> int:
+    _setup_output()
+    store = Store(_data_dir() / "warrant.sqlite")
+    if forget:
+        store.forget(forget)
+        print(f"Forgot {forget}.")
+        return 0
+    labels = {"note": "You asked me to remember", "refusal": "You removed from a job", "last": "Last answer to a job"}
+    entries = store.memories()
+    if not entries:
+        print('Nothing yet. Try: warrant remember "I am in section B"')
+    for entry in entries:
+        print(f"{entry['id']}  {dim(labels.get(entry['kind'], entry['kind']))}\n    {entry['text'][:120]}")
+    return 0
+
+
+def run_skill(settings: Settings, action: str, name: str | None, yes: bool = False) -> int:
+    _setup_output()
+    store = Store(_data_dir() / "warrant.sqlite")
+    if action == "list":
+        skills = store.skills()
+        if not skills:
+            print("No skills yet. Save one with: warrant try --save-as my-brief")
+        for skill in skills:
+            w = store.warrant(skill["warrant_id"])
+            print(f"{bold(skill['name'])}  {store.mission(skill['mission_id']).text}")
+            for grant in w.grants:
+                print(dim(f"    {grant.capability.plain.replace(EVERY_RUN, '')}"))
+        return 0
+    if not name:
+        print("Give the name of a skill.", file=sys.stderr)
+        return 2
+    try:
+        skill = store.skill(name)
+    except KeyError:
+        print(f"No skill called {name}. See: warrant skill list", file=sys.stderr)
+        return 1
+    if action == "delete":
+        store.delete_skill(name)
+        print(f"Deleted {name}.")
+        return 0
+    mission, warrant = store.mission(skill["mission_id"]), store.warrant(skill["warrant_id"])
+    print(f"{bold(name)}  {mission.text}")
+    for grant in warrant.grants:
+        print(dim(f"    {grant.capability.plain.replace(EVERY_RUN, '')}"))
+    if warrant.per_run_approval and _ask("This skill changes something. Allow this run? [y/N] ", "y" if yes else None).lower() not in {"y", "yes"}:
+        print("Nothing ran.")
+        return 0
+    key = _ask_key(settings)
+    if not key:
+        return 2
+    portal = settings.portal_url
+    if any(g.capability.site == "portal" for g in warrant.grants) and "WARRANT_PORTAL_URL" not in os.environ:
+        portal = _start_demo_portal(settings.enforcer == "openshell")
+    settings = replace(settings, nebius_api_key=key, portal_url=portal, data_dir=_data_dir())
+    _run_and_report(store, mission, warrant, settings, TokenFactory(settings))
     return 0
 
 
@@ -308,4 +423,35 @@ def run_prove() -> int:
         print(blocked("\nThis result is not what Warrant promises. Please report it."))
         return 1
     print(allowed("\nSame agent, same attempts. The warrant is the only difference."))
+    return 0
+
+
+def run_site(action: str, name: str | None, url: str | None, read: list[str], write: list[str], token_env: str | None) -> int:
+    _setup_output()
+    if action == "list":
+        sites = _user_sites()
+        if not sites:
+            print("No sites yet. Add one with: warrant site add NAME URL --read /path")
+        for site in sites:
+            print(f"{bold(site.name)}  {site.base_url}")
+            for cap in site.capabilities:
+                print(f"    {'/'.join(cap.rule.methods):<5} {', '.join(cap.rule.paths)}")
+        print(dim(f"\nFile: {sites_file()}"))
+        return 0
+    if not name:
+        print("Give the site a name.", file=sys.stderr)
+        return 2
+    if action == "remove":
+        print(f"Removed {name}." if remove_site(name) else f"No site called {name}.")
+        return 0
+    if not url:
+        print("Give the address of the site, for example https://api.github.com", file=sys.stderr)
+        return 2
+    try:
+        path, ids = add_site(name, url, read, write, token_env)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"Added {name} with {len(ids)} permissions to {path}")
+    print(f'Next: warrant try "what you want done on {name}"')
     return 0

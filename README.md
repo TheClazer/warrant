@@ -39,12 +39,14 @@ flowchart LR
 
 ## Verified so far
 
-All on 26 October 2026, with real services. Details in `docs/verification/openshell-deciding-check.md`.
+With real services, from 26 October 2026. Details in `docs/verification/openshell-deciding-check.md`.
 
 | Check | Result |
 |---|---|
 | Nemotron 3 Super drafts warrants for 4 missions | Minimal capabilities chosen each time; writing missions marked "ask every run"; checker passed |
 | Warrant policy inside a real OpenShell 0.1.5 sandbox | Allowed GET returned 200; POST, an unlisted path and an unlisted host were denied, with OpenShell's own reasons |
+| Over-reach evaluation, 5 scenarios x 2 repeats, OpenShell enforcing the warrant runs (30 October) | Broad access: 24 of 24 off-warrant requests went through. Warrant: 0 of 17. Expected fact in 4 of 10 answers in both |
+| Live GitHub API in an OpenShell sandbox (30 October) | Reading issues allowed; OpenShell blocked the agent's attempt to post one. No token was set |
 | Full mission under OpenShell | Fresh sandbox per run, agent read only the 2 warrant pages from inside it, Nemotron wrote a correct brief, sandbox deleted |
 
 ## What is in this repository
@@ -60,6 +62,8 @@ All on 26 October 2026, with real services. Details in `docs/verification/opensh
 | `src/warrant/agent/` | Tool-using agent used for local development and repeatable runs |
 | `src/warrant/runner.py` | Runs a mission under its warrant and records every event |
 | `src/warrant/api.py` | FastAPI service, including a live event stream |
+| `src/warrant/memory.py` | Notes, remembered refusals and last answers |
+| `src/warrant/guard.py`, `prove.py`, `local.py` | `warrant guard`, `warrant prove`, and the terminal flow |
 | `web/` | React interface (missions, warrant approval, live run view, reviewed sites) |
 | `FEEDBACK.md` | Notes on Nebius and NVIDIA tools gathered while building |
 
@@ -84,6 +88,39 @@ uvx --from git+https://github.com/TheClazer/warrant warrant try
 ```
 
 `warrant try "your own job"` runs a different job on the same portal. Reviewed sites are listed in `src/warrant/sites.py`.
+
+## Use it on your real sites
+
+Say what an agent may ever do on a site or API. Once you have added one, the fictional portal is gone and every job
+runs on your sites. You are the reviewer: the model can only pick from your list.
+
+```bash
+uv tool install git+https://github.com/TheClazer/warrant
+warrant site add github https://api.github.com \
+  --read /repos/my-name/my-repo/issues \
+  --write /repos/my-name/my-repo/issues \
+  --token-env GITHUB_TOKEN
+warrant try "What are the newest issues on my repository?"
+```
+
+Sites live in `~/.warrant/sites.yaml`. A token stays in its environment variable, is never saved, and is sent only to its
+own host on a request the warrant allowed. Warrant cannot log in through a website's sign-in page yet, and tokens are
+sent by the built-in enforcer only, not yet inside an OpenShell sandbox.
+
+## Memory and skills
+
+Warrant keeps three things in `~/.warrant`: notes you ask it to remember, permissions you removed from a job (left out
+of later drafts of that job), and its last answer to a job. Memory is background for the agent and can never widen a warrant.
+
+A skill is a job with the warrant you approved, saved by name. It reruns without asking the model for new permissions,
+and jobs that change something still ask on every run.
+
+```bash
+warrant remember "I only care about CS301"
+warrant memory
+warrant try "Find my exams this week" --save-as exams
+warrant skill run exams
+```
 
 ## Guard a program you already have
 
@@ -162,11 +199,12 @@ uv run mypy
 
 ## Current limits
 
-- The agent has no login handling, so it cannot sign in to real accounts yet.
+- It cannot log in through a website's sign-in page yet. Real sites work through APIs and pages reachable with a token or no sign-in.
 - The agent is Warrant's own small tool-using agent. Running Hermes Agent inside the sandbox is planned, not done.
 - The public demo uses the built-in enforcer; real OpenShell runs need a Docker host and are shown in the video.
-- The evaluation so far is an over-reach test on a fictional portal, run with the built-in enforcer. It does not
-  yet include planted prompt-injection pages.
+- The evaluation is an over-reach test on a fictional portal, with OpenShell enforcing the warrant runs. It does not
+  yet include planted prompt-injection pages. An earlier built-in enforcer run is kept in `eval/results-builtin`.
+- It has not had an outside security review or real users. Treat it as early software.
 
 ## Honesty
 

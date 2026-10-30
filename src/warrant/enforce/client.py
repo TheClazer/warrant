@@ -27,9 +27,11 @@ class GatedClient:
         on_decision: Callable[[Decision], None],
         transport: httpx.BaseTransport | None = None,
         timeout: float = 15.0,
+        tokens: dict[str, str] | None = None,
     ):
         self.gate = gate
         self.on_decision = on_decision
+        self.tokens = tokens or {}
         # Redirects are followed manually so every hop is checked against the gate.
         self._client = httpx.Client(
             timeout=timeout, follow_redirects=False, transport=transport, headers={"User-Agent": "Warrant-Agent/0.1"}
@@ -41,7 +43,10 @@ class GatedClient:
             self.on_decision(decision)
             if not decision.allowed:
                 raise Blocked(decision)
-            response = self._client.request(method, url, **kwargs)
+            # A token goes only to its own site, and only on a request the warrant allowed. Each redirect hop is decided again.
+            token = self.tokens.get(decision.host)
+            headers = {"Authorization": f"Bearer {token}"} if token else None
+            response = self._client.request(method, url, headers=headers, **kwargs)
             if response.is_redirect and "location" in response.headers:
                 url = str(response.url.join(response.headers["location"]))
                 method, kwargs = "GET", {}

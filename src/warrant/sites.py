@@ -6,7 +6,12 @@ wildcard or a broader path. Adding a site means reviewing its capabilities here,
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
+
+import yaml
 
 from .config import Settings
 from .models import Capability, Rule, Site
@@ -31,11 +36,55 @@ def _cap(site: str, url: str, cid: str, summary: str, plain: str, methods: tuple
     )
 
 
-def build_registry(settings: Settings) -> tuple[Site, ...]:
+def sites_file() -> Path:
+    """Your own reviewed sites: WARRANT_SITES if set, else ~/.warrant/sites.yaml."""
+    configured = os.environ.get("WARRANT_SITES")
+    return Path(configured) if configured else Path.home() / ".warrant" / "sites.yaml"
+
+
+def _user_entries() -> list[dict]:
+    path = sites_file()
+    if not path.is_file():
+        return []
+    return list((yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("sites") or [])
+
+
+def _user_sites() -> list[Site]:
+    """Sites you listed yourself. You are the reviewer: the model can still only pick from what is written here."""
+    sites = []
+    for entry in _user_entries():
+        sid, name, url = str(entry["id"]), str(entry["name"]), str(entry["url"]).rstrip("/")
+        caps = tuple(
+            _cap(
+                sid,
+                url,
+                str(c["id"]),
+                str(c["does"]),
+                f"{c['does']} on {name}",
+                tuple(str(m).upper() for m in c["methods"]),
+                tuple(str(p) for p in c["paths"]),
+            )
+            for c in entry["capabilities"]
+        )
+        sites.append(Site(id=sid, name=name, base_url=url, capabilities=caps))
+    return sites
+
+
+def site_tokens() -> dict[str, str]:
+    """host -> token, for sites that name an environment variable in ``token_env``. Tokens are never stored."""
+    tokens = {}
+    for entry in _user_entries():
+        token = os.environ.get(str(entry.get("token_env") or ""), "").strip()
+        if token:
+            tokens[(urlsplit(str(entry["url"])).hostname or "").lower()] = token
+    return tokens
+
+
+def _demo_sites(settings: Settings) -> list[Site]:
     portal = settings.portal_url.rstrip("/")
     portal_name = "the course portal"
     p = "portal"
-    sites = [
+    return [
         Site(
             id=p,
             name="Northfield course portal",
@@ -107,6 +156,12 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
             ),
         )
     ]
+
+
+def build_registry(settings: Settings) -> tuple[Site, ...]:
+    own = _user_sites()
+    use_demo = not own if settings.include_demo is None else settings.include_demo
+    sites: list[Site] = _demo_sites(settings) if use_demo else []
     if settings.tavily_api_key:
         sites.append(
             Site(
@@ -126,8 +181,47 @@ def build_registry(settings: Settings) -> tuple[Site, ...]:
                 ),
             )
         )
+    sites.extend(own)
     return tuple(sites)
 
 
 def capability_index(sites: tuple[Site, ...]) -> dict[str, Capability]:
     return {c.id: c for s in sites for c in s.capabilities}
+
+
+def add_site(
+    name: str, url: str, read: list[str], write: list[str], token_env: str | None = None
+) -> tuple[Path, list[str]]:
+    """Add a site to your sites file, replacing one with the same name. Returns the file and the capability IDs."""
+    scheme, host, _ = _origin(url)
+    if scheme != "https" and host not in {"127.0.0.1", "localhost"}:
+        raise ValueError("Use an https:// address. Plain http is only accepted for localhost.")
+    if not read and not write:
+        raise ValueError("List at least one path with --read or --write.")
+    for route in (*read, *write):
+        if not route.startswith("/") or route in {"/*", "/**"}:
+            raise ValueError(f"Paths must start with / and cannot cover the whole site: {route}")
+    caps: list[dict[str, Any]] = [
+        {"id": f"{name}.read.{i}", "does": f"Read {route}", "methods": ["GET"], "paths": [route]}
+        for i, route in enumerate(read, 1)
+    ] + [
+        {"id": f"{name}.write.{i}", "does": f"Send to {route}", "methods": ["POST"], "paths": [route]}
+        for i, route in enumerate(write, 1)
+    ]
+    entry: dict = {"id": name, "name": name, "url": url.rstrip("/"), "capabilities": caps}
+    if token_env:
+        entry["token_env"] = token_env
+    entries = [e for e in _user_entries() if e.get("id") != name] + [entry]
+    path = sites_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump({"sites": entries}, sort_keys=False), encoding="utf-8")
+    return path, [c["id"] for c in caps]
+
+
+def remove_site(name: str) -> bool:
+    entries = _user_entries()
+    kept = [e for e in entries if e.get("id") != name]
+    if len(kept) == len(entries):
+        return False
+    sites_file().write_text(yaml.safe_dump({"sites": kept}, sort_keys=False), encoding="utf-8")
+    return True

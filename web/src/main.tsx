@@ -4,10 +4,11 @@ import { createRoot } from 'react-dom/client'
 import { api, Status, token } from './api'
 import { Landing } from './Landing'
 import './styles.css'
+import { MemoryPage } from './Memory'
 import { UseIt } from './UseIt'
 import { Evidence, Missions, RunPage, Sites } from './Workspace'
 
-type Route = { view: 'landing' | 'app' | 'run' | 'sites' | 'evidence' | 'use'; run?: string }
+type Route = { view: 'landing' | 'app' | 'run' | 'sites' | 'evidence' | 'use' | 'memory'; run?: string }
 
 function readHash(): Route {
   const h = location.hash.replace(/^#\/?/, '')
@@ -16,11 +17,13 @@ function readHash(): Route {
   if (h === 'sites') return { view: 'sites' }
   if (h === 'evidence') return { view: 'evidence' }
   if (h === 'use') return { view: 'use' }
+  if (h === 'memory') return { view: 'memory' }
   return { view: 'landing' }
 }
 
 const NAV: [Route['view'], string, string][] = [
   ['app', 'Try it', '#/app'],
+  ['memory', 'Memory and skills', '#/memory'],
   ['use', 'Use it yourself', '#/use'],
   ['sites', 'Reviewed sites', '#/sites'],
   ['evidence', 'Evidence', '#/evidence'],
@@ -77,7 +80,7 @@ function Shell({ route }: { route: Route }) {
         <dl className="side-sys">
           <div><dt>Model</dt><dd><span className={`dot ${status?.live_model ? 'live' : ''}`} />{status ? (status.live_model ? 'Nemotron 3 Super' : 'Offline') : 'Connecting…'}</dd></div>
           <div><dt>Enforcer</dt><dd>{status ? (status.enforcer === 'openshell' ? 'NVIDIA OpenShell' : 'Built-in') : '…'}</dd></div>
-          <div><dt>Portal</dt><dd>Fictional demo</dd></div>
+          {status?.demo && <div><dt>Portal</dt><dd>Fictional demo</dd></div>}
         </dl>
         {status?.auth_required && <button className="text-btn on-dark" onClick={() => setAskToken(true)}>{token.get() ? 'Owner signed in' : 'Owner sign-in'}</button>}
       </aside>
@@ -89,6 +92,7 @@ function Shell({ route }: { route: Route }) {
           {route.view === 'sites' && <Sites />}
           {route.view === 'evidence' && <Evidence />}
           {route.view === 'use' && <UseIt />}
+          {route.view === 'memory' && <MemoryPage notify={notify} />}
         </div>
       </main>
       <AnimatePresence>

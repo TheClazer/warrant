@@ -4,7 +4,7 @@ import { CopyButton } from './ui'
 
 type Line = { text: string; kind?: 'cmd' | 'input' | 'dim' | 'head' | 'ok' | 'bad' | 'gap'; wait?: number }
 
-/* Replayed from real runs of these commands. Only the long answer is shortened, and that line says so. */
+/* Replayed from real runs of these commands. Long answers are left out or shortened. */
 const SCRIPTS: Record<string, { label: string; lines: Line[] }> = {
   prove: {
     label: 'See the difference',
@@ -54,28 +54,30 @@ const SCRIPTS: Record<string, { label: string; lines: Line[] }> = {
       { kind: 'dim', text: '  (answer shortened here) The CS301 midterm moves to Hall B. Grades: blocked.', wait: 700 },
       { kind: 'head', text: 'What changed because of Warrant', wait: 300 },
       { text: '  Without it: GET /grades would have gone through.' },
-      { kind: 'bad', text: '  With it:    stopped before being sent. The agent never got that data.' },
+      { kind: 'bad', text: '  With it:    stopped before being sent. Nothing reached that address.' },
     ],
   },
-  openshell: {
-    label: 'With NVIDIA OpenShell',
+  real: {
+    label: 'Real API, real OpenShell',
     lines: [
-      { kind: 'cmd', text: 'WARRANT_ENFORCER=openshell warrant try --remove portal.read.grades --yes' },
-      { kind: 'head', text: 'The AI asked for:', wait: 1300 },
-      { text: '  1. Read announcements on the course portal' },
-      { kind: 'dim', text: '  Everything else on this site, and every other website, stays blocked.' },
+      { kind: 'cmd', text: 'warrant site add github https://api.github.com --read /repos/NVIDIA/OpenShell/issues --write /repos/NVIDIA/OpenShell/issues' },
+      { text: 'Added github with 2 permissions to ~/.warrant/sites.yaml', wait: 500 },
+      { kind: 'cmd', text: 'WARRANT_ENFORCER=openshell warrant try "Read the issues on the NVIDIA OpenShell GitHub repository and then open a new issue on it saying thanks." --remove github.write.1 --yes' },
+      { kind: 'dim', text: 'Your sites: github', wait: 600 },
+      { kind: 'head', text: 'The AI asked for:', wait: 1000 },
+      { text: '  1. Read /repos/NVIDIA/OpenShell/issues on github' },
       { kind: 'input', text: 'Approve and run? [Y/n] |y', wait: 400 },
       { kind: 'gap', text: '' },
-      { kind: 'head', text: 'Running the agent', wait: 500 },
-      { kind: 'dim', text: '  NVIDIA OpenShell sandbox wrt-680ef393c0e9', wait: 1400 },
-      { kind: 'ok', text: '  ALLOWED  GET /announcements', wait: 900 },
-      { kind: 'bad', text: '  BLOCKED  GET /grades  not in this warrant', wait: 1000 },
+      { kind: 'head', text: 'Running the agent', wait: 400 },
+      { kind: 'dim', text: '  NVIDIA OpenShell sandbox wrt-596aa402443d', wait: 1300 },
+      { kind: 'ok', text: '  ALLOWED  GET api.github.com/repos/NVIDIA/OpenShell/issues', wait: 900 },
+      { kind: 'bad', text: '  BLOCKED  POST api.github.com/repos/NVIDIA/OpenShell/issues  not in this warrant', wait: 1000 },
       { kind: 'gap', text: '' },
       { kind: 'head', text: 'What changed because of Warrant' },
-      { text: '  Without it: GET /grades would have gone through.' },
-      { kind: 'bad', text: '  With it:    stopped before being sent. The agent never got that data.' },
+      { text: '  Without it: POST api.github.com/repos/NVIDIA/OpenShell/issues would have gone through.' },
+      { kind: 'bad', text: '  With it:    stopped before being sent. Nothing reached that address.' },
       { kind: 'gap', text: '' },
-      { kind: 'dim', text: '  3 Nemotron calls, 3,994 tokens' },
+      { kind: 'dim', text: '  3 Nemotron calls, 6,127 tokens' },
     ],
   },
   guard: {

@@ -153,7 +153,7 @@ export function Landing() {
                 <div className="bar"><i style={{ width: '0%' }} /></div>
               </div>
             </div>
-            <p className="note">These runs used Warrant's built-in enforcer. The expected fact appeared in 3 of 10 answers in both setups, so agent accuracy still has room to grow. <a href="#/evidence">Full table</a></p>
+            <p className="note">Warrant runs were enforced by NVIDIA OpenShell in real sandboxes. The expected fact appeared in {setups ? `${setups.warrant.missions_completed} of ${setups.warrant.runs}` : 'some'} answers under the warrant and {setups ? `${setups.broad.missions_completed} of ${setups.broad.runs}` : 'some'} with broad access, so agent accuracy still has room to grow. <a href="#/evidence">Full table</a></p>
           </Reveal>
         </div>
       </section>
@@ -174,6 +174,18 @@ export function Landing() {
         </Reveal>
       </section>
 
+      <section className="wrap sec remembers">
+        <Reveal>
+          <span className="label">Gets better with use</span>
+          <h2>It remembers how you work. It never remembers its way into more access.</h2>
+          <div className="two">
+            <div><h3>Memory</h3><p>Your notes and its last answer come along to the next run, and permissions you removed stay removed. You can read and delete all of it.</p></div>
+            <div><h3>Skills</h3><p>Save a job you've approved and run it again by name, with the same warrant. Jobs that change something still ask every time.</p></div>
+          </div>
+          <a className="btn" href="#/memory">See memory and skills</a>
+        </Reveal>
+      </section>
+
       <section className="wrap stack">
         <span className="label">Built with</span>
         <ul>
@@ -191,8 +203,8 @@ export function Landing() {
       </section>
 
       <footer className="wrap lfoot mono">
-        <span>Demo portal is fictional. No real accounts.</span>
-        <span>The public demo uses the built-in enforcer; OpenShell needs its own Docker host.</span>
+        <span>This website's app is a shared demo with a fictional portal and the built-in enforcer.</span>
+        <span>For real use, run it on your machine with your own sites and OpenShell.</span>
         <a href={REPO} target="_blank" rel="noreferrer">Apache-2.0</a>
       </footer>
       </ClickSpark>

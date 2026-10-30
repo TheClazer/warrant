@@ -21,6 +21,8 @@ export function Missions({ notify }: { notify: Notify }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [composing, setComposing] = useState(false)
   const [everything, setEverything] = useState<Capability[]>([])
+  const [demo, setDemo] = useState(false)
+  useEffect(() => { api.status().then(s => setDemo(s.demo)).catch(() => {}) }, [])
   useEffect(() => { api.catalogue().then(sites => setEverything(sites.flatMap(x => x.capabilities))).catch(() => {}) }, [])
 
   const load = useCallback(async () => {
@@ -54,7 +56,7 @@ export function Missions({ notify }: { notify: Notify }) {
         </ul>
       </aside>
       <section className="detail">
-        <p className="scenario"><b>You're in a safe demo.</b> Pretend you're a student with a fictional course portal. A real AI agent (NVIDIA Nemotron) will do a job on it, and Warrant decides what it may touch. It runs on our server with Warrant's built-in enforcer, not OpenShell. <a href="#/use">Run it on your machine</a>.</p>
+        {demo && <p className="scenario"><b>You're in a safe demo.</b> The course portal is made up, so no real data is at risk. On your own machine you can point Warrant at <a href="#/use">real sites</a>. A real AI agent (NVIDIA Nemotron) will do a job on it, and Warrant decides what it may touch. It runs on our server with Warrant's built-in enforcer, not OpenShell. <a href="#/use">Run it on your machine</a>.</p>}
         {current && (
           <div key={current.id} className="enter">
             <MissionDetail mission={current} everything={everything} reload={load} notify={notify} />
@@ -280,6 +282,23 @@ function whyBlocked(e: RunEvent) {
   return reason.startsWith('OpenShell') ? reason : 'Not in this mission’s warrant.'
 }
 
+function SaveSkill({ missionId }: { missionId: string }) {
+  const [name, setName] = useState('')
+  const [saved, setSaved] = useState('')
+  const [error, setError] = useState('')
+  if (saved) return <a className="text-btn" href="#/memory">Saved “{saved}”. See your skills</a>
+  return (
+    <form className="save-skill" onSubmit={async e => {
+      e.preventDefault()
+      try { setSaved((await api.saveSkill(name.trim(), missionId)).name) } catch (err) { setError((err as Error).message) }
+    }}>
+      <input aria-label="Skill name" placeholder="Name this job" maxLength={60} value={name} onChange={e => setName(e.target.value)} />
+      <button className="btn ghost" disabled={!name.trim()}>Save as a skill</button>
+      {error && <small>{error}</small>}
+    </form>
+  )
+}
+
 export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
   const [run, setRun] = useState<Run | null>(null)
   const [events, setEvents] = useState<RunEvent[]>([])
@@ -309,6 +328,7 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
   const models = events.filter(e => e.kind === 'model')
   const answer = events.find(e => e.kind === 'answer')
   const sandbox = events.find(e => e.kind === 'sandbox')
+  const memoryUsed = events.find(e => e.kind === 'memory')
   const done = events.some(e => e.kind === 'done')
   const status = done ? (run?.status === 'running' ? 'completed' : run?.status ?? 'completed') : 'running'
   const tokens = useMemo(() => models.reduce((s, e) => s + Number(e.prompt_tokens ?? 0) + Number(e.completion_tokens ?? 0), 0), [models])
@@ -341,6 +361,10 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
         <Status status={status} />
       </header>
 
+      {memoryUsed && (
+        <p className="mem-used">Used memory: {Number(memoryUsed.notes)} note{Number(memoryUsed.notes) === 1 ? '' : 's'}{memoryUsed.last ? ' and its last answer to this job' : ''}. It grants no permissions. <a href="#/memory">See what it knows</a></p>
+      )}
+
       {done && (
         <section className="changed enter">
           <span className="label">What changed because of Warrant</span>
@@ -355,12 +379,13 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
             <div className="with">
               <h3>With this warrant</h3>
               {blocked.length
-                ? <p><b>{blocked.length === 1 ? 'It was' : 'They were'} stopped before being sent.</b> The agent never got that data, and it finished the job with what it was allowed.</p>
+                ? <p><b>{blocked.length === 1 ? 'It was' : 'They were'} stopped before being sent.</b> Nothing reached that address, and the agent finished the job with what it was allowed.</p>
                 : <p><b>The agent stayed inside its warrant,</b> with {network.length} allowed request{network.length === 1 ? '' : 's'}. Nothing needed stopping. To see a block, try “{HINT_TITLE}” with grades removed.</p>}
             </div>
           </div>
           <div className="changed-foot">
             <a className="text-btn" href="#/app">Try another job</a>
+            <SaveSkill missionId={run.mission_id} />
             <a className="btn signal" href="#/use">Use this yourself</a>
           </div>
         </section>
@@ -476,9 +501,9 @@ export function Evidence() {
       <div className="limits">
         <h2>What this does not show</h2>
         <ul>
-          <li>These runs used the built-in enforcer. OpenShell was verified separately, with a real sandbox and its own logs.</li>
-          <li>The portal is fictional, and the test covers over-reach, not planted prompt-injection pages.</li>
-          <li>The expected fact appeared in 3 of 10 answers in both setups. That is an agent-quality limit, on a small sample.</li>
+          <li>In the Warrant setup, NVIDIA OpenShell enforced each run in its own sandbox. The broad-access setup runs without a sandbox, which is the point of comparison.</li>
+          <li>This test uses a fictional portal, and covers over-reach, not planted prompt-injection pages.</li>
+          <li>The expected fact appeared in {ready ? `${ready.setups.warrant.missions_completed} of ${ready.setups.warrant.runs}` : 'few'} answers in both setups. That is an agent-quality limit, on a small sample.</li>
           <li>A warrant stops requests. It does not stop a page from misleading the agent's answer.</li>
         </ul>
       </div>

@@ -1,6 +1,6 @@
 # Devpost submission draft
 
-Fill the bracketed parts only with measured values. Everything else is accurate as of 28 October 2026.
+Fill the bracketed parts only with measured values. Everything else is accurate as of 30 October 2026.
 
 **Project name:** Warrant
 
@@ -32,6 +32,10 @@ whole flow in a terminal, against a fictional portal it starts itself. `warrant 
 limits a program you already have to the hosts you list, and prints each decision. That second command relies on
 standard proxy settings, so a program can ignore it; OpenShell is the version a program cannot opt out of.
 
+It works beyond the demo portal: `warrant site add` lists a real site or API, with an optional token sent only to that
+site, and the fictional portal then goes away. It also keeps a small memory (your notes, permissions you removed, its last answer) and reusable skills (a job
+saved with its approved warrant). Neither can widen a warrant.
+
 ## How we built it
 
 - **NVIDIA Nemotron 3 Super** (`nvidia/nemotron-3-super-120b-a12b`) on **Nebius Token Factory** drafts warrants
@@ -55,9 +59,11 @@ or a broader path. A deterministic checker has the final word on every draft.
 - A full mission ran end to end: fresh sandbox, the agent read only the two pages in its warrant, Nemotron
   wrote a correct brief, the sandbox was deleted. 3 Nemotron calls, 4,442 tokens.
 - Over-reach evaluation (5 frozen scenarios x 2 repeats, Nemotron 3 Super): each mission asks for more than
-  its approved warrant. With broad access, 26 of 26 off-warrant requests went through; under the warrant,
-  0 of 15 did. The expected fact appeared in 3 of 10 answers in both setups (a small sample, and an agent-quality limit
-  rather than an effect of the warrant). These runs used Warrant's built-in enforcer; the OpenShell path is verified separately above.
+  its approved warrant. With broad access, 24 of 24 off-warrant requests went through; under the warrant,
+  with NVIDIA OpenShell enforcing each run in its own sandbox, 0 of 17 did. The expected fact appeared in 4 of 10 answers in both
+  setups (a small sample, and an agent-quality limit rather than an effect of the warrant).
+- On the live GitHub API, in a real OpenShell sandbox, a warrant allowed reading issues and OpenShell blocked the agent's attempt
+  to post one, with no token set.
 
 ## Challenges
 

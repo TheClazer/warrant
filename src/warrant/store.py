@@ -24,6 +24,12 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_run ON events(run_id, seq);
 CREATE INDEX IF NOT EXISTS warrants_mission ON warrants(mission_id, created_at);
+CREATE TABLE IF NOT EXISTS memory (
+  id TEXT PRIMARY KEY, kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, created_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS skills (
+  name TEXT PRIMARY KEY, mission_id TEXT NOT NULL, warrant_id TEXT NOT NULL, created_at REAL NOT NULL
+);
 """
 
 
@@ -41,6 +47,41 @@ class Store:
     def _q(self, sql: str, args: tuple = ()) -> list[sqlite3.Row]:
         with self._lock:
             return self._db.execute(sql, args).fetchall()
+
+    # memory: a keyed entry replaces the earlier one with that key
+    def remember(self, kind: str, text: str, key: str = "") -> dict[str, Any]:
+        if key:
+            self._q("DELETE FROM memory WHERE kind=? AND key=?", (kind, key))
+        entry = {"id": new_id("mem"), "kind": kind, "key": key, "text": text, "created_at": now()}
+        self._q("INSERT INTO memory VALUES (:id,:kind,:key,:text,:created_at)", entry)  # type: ignore[arg-type]
+        return entry
+
+    def memories(self, kind: str | None = None) -> list[dict[str, Any]]:
+        if kind:
+            rows = self._q("SELECT * FROM memory WHERE kind=? ORDER BY created_at", (kind,))
+        else:
+            rows = self._q("SELECT * FROM memory ORDER BY created_at")
+        return [dict(r) for r in rows]
+
+    def forget(self, memory_id: str) -> None:
+        self._q("DELETE FROM memory WHERE id=?", (memory_id,))
+
+    # skills: a named job with the warrant you approved for it
+    def save_skill(self, name: str, mission_id: str, warrant_id: str) -> dict[str, Any]:
+        self._q("INSERT OR REPLACE INTO skills VALUES (?,?,?,?)", (name, mission_id, warrant_id, now()))
+        return self.skill(name)
+
+    def skill(self, name: str) -> dict[str, Any]:
+        rows = self._q("SELECT * FROM skills WHERE name=?", (name,))
+        if not rows:
+            raise KeyError(name)
+        return dict(rows[0])
+
+    def skills(self) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._q("SELECT * FROM skills ORDER BY created_at")]
+
+    def delete_skill(self, name: str) -> None:
+        self._q("DELETE FROM skills WHERE name=?", (name,))
 
     # missions
     def save_mission(self, m: Mission) -> Mission:
