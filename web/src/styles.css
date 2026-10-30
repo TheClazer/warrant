@@ -311,7 +311,13 @@ code, .mono { font-family: var(--mono); font-stretch: 87.5% }
 .use-step p code { background: var(--i06); padding: 0 4px; font-size: 12px }
 .code { position: relative; background: var(--ink); color: #E6E7E1 }
 .code pre { margin: 0; padding: 16px; overflow: auto; font: 12px/1.65 var(--mono); font-stretch: 87.5% }
-.code button { position: absolute; top: 8px; right: 8px; padding: 3px 8px; font: 500 10.5px var(--mono); text-transform: uppercase; color: var(--ink); background: var(--signal) }
+.code .copy { position: absolute; top: 8px; right: 8px }
+.code pre { padding-right: 76px }
+.copy { padding: 3px 8px; font: 500 10.5px var(--mono); font-stretch: 87.5%; text-transform: uppercase; color: var(--ink); background: var(--signal); white-space: nowrap; transition: background .14s }
+.copy:hover { background: #FFD24F }
+.term-copy { margin-left: auto; align-self: center; padding-right: 8px }
+.term-body { white-space: pre-wrap }
+.scenario a { color: var(--signal) }
 .own .btn { margin-top: 18px }
 .own { padding-bottom: 40px }
 
@@ -333,8 +339,9 @@ code, .mono { font-family: var(--mono); font-stretch: 87.5% }
 .t-input { color: var(--signal) }
 .local { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 48px; align-items: center }
 .lede.on-dark { color: var(--d70) }
-.oneliner { margin: 20px 0 18px; padding: 11px 13px; font-size: 12px; background: #0B0C0E; color: var(--paper); box-shadow: 0 0 0 1px var(--d15); overflow-wrap: anywhere }
-.oneliner span { color: var(--signal) }
+.oneliner { margin: 20px 0 18px }
+.oneliner .code { background: #0B0C0E; box-shadow: 0 0 0 1px var(--d15) }
+.oneliner pre { white-space: pre-wrap; overflow-wrap: anywhere }
 .use-term { margin-top: 24px }
 
 /* guard flow */
@@ -465,3 +472,59 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .eyebrow { display: table; padding: 3px 8px; background: var(--ink); }
 .nowrap { display: block; white-space: nowrap }
 .nowrap .rotator { white-space: nowrap; flex-wrap: nowrap }
+
+/* examples */
+.examples h2 { margin-bottom: 28px }
+.sc-stage { position: relative; overflow: hidden; background: var(--paper); box-shadow: 0 0 0 1px var(--ink), 8px 8px 0 var(--signal); cursor: pointer; user-select: none }
+.sc-state { margin-left: auto !important; color: var(--i50) }
+.sc-title { padding: 18px 24px 0; font-size: clamp(22px, 2.6vw, 32px); animation: enter .3s var(--ease) both }
+.sc-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: 300px; margin-top: 12px; border-top: 1px solid var(--i12) }
+.sc-left { padding: 18px 24px; border-right: 1px solid var(--i12) }
+.sc-right { padding: 18px 24px; background: var(--panel) }
+.sc-job { margin: 6px 0 14px; font-size: 17px; font-weight: 600; min-height: 1.4em }
+.sc-cmd { padding: 12px 14px; background: var(--ink); color: var(--paper); font: 400 12.5px/1.6 var(--mono); font-stretch: 87.5%; overflow-wrap: anywhere }
+.sc-cmd span { color: var(--signal) }
+.sc-card { padding: 12px 14px; background: var(--white); box-shadow: inset 0 0 0 1px var(--i20); transition: box-shadow .25s }
+.sc-card.ok { box-shadow: inset 0 0 0 1.5px var(--ink) }
+.sc-grant { display: flex; align-items: center; gap: 9px; margin-top: 8px; font-size: 14.5px; transition: opacity .25s }
+.sc-grant.gone { opacity: .4; text-decoration: line-through }
+.sc-grant em { margin-left: auto; font: 500 10px var(--mono); text-transform: uppercase; background: var(--signal); padding: 1px 6px }
+.sc-grant b { margin-left: auto; font: 500 10.5px var(--mono); text-transform: uppercase; padding: 2px 7px; box-shadow: inset 0 0 0 1px var(--i20) }
+.sc-foot { margin-top: 12px; min-height: 36px; display: flex; align-items: center }
+.sc-btn { padding: 8px 16px; font-size: 14px; pointer-events: none }
+.sc-ask { display: grid; gap: 8px; justify-items: start; margin-top: 12px; padding: 12px 14px; background: var(--signal); font-size: 14.5px }
+.sc-ask .btn { background: var(--ink); color: var(--paper) }
+.sc-wait { margin: 10px 0 0; color: var(--i50); font-size: 14.5px }
+.sc-events { display: grid; gap: 8px; margin-top: 10px }
+.sc-events li { display: grid; gap: 1px; padding: 9px 12px; background: var(--white); box-shadow: inset 0 0 0 1px var(--i12) }
+.sc-events li b { font: 600 10.5px var(--mono); text-transform: uppercase; color: var(--ok) }
+.sc-events li code { font-size: 12.5px; overflow-wrap: anywhere }
+.sc-events li.bad { background: var(--signal); box-shadow: 3px 3px 0 var(--ink) }
+.sc-events li.bad b { color: var(--ink) }
+.sc-outcome { display: grid; grid-template-columns: 1fr 1fr; min-height: 108px; border-top: 1px solid var(--ink); opacity: 0; transform: translateY(8px); transition: opacity .3s, transform .3s var(--ease) }
+.sc-outcome.on { opacity: 1; transform: none }
+.sc-outcome > div { padding: 14px 24px }
+.sc-outcome .with { background: var(--ink); color: var(--paper) }
+.sc-outcome .with .label { color: var(--signal) }
+.sc-outcome p { margin: 5px 0 0; font-size: 15.5px; font-weight: 500; line-height: 1.35 }
+.sc-cursor { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; transition: transform .75s cubic-bezier(.45, .05, .2, 1) }
+.sc-cursor svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); transition: transform .12s }
+.sc-cursor.click svg { transform: scale(.82) }
+.sc-cursor i { position: absolute; left: -12px; top: -12px; width: 26px; height: 26px; border: 2px solid var(--ink); border-radius: 50%; opacity: 0 }
+.sc-cursor.click i { animation: ripple .4s ease-out }
+@keyframes ripple { 0% { opacity: .7; transform: scale(.3) } 100% { opacity: 0; transform: scale(1.3) } }
+.sc-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px }
+.sc-tabs button { display: grid; gap: 7px; text-align: left; font-size: 13.5px; font-weight: 500; color: var(--i50); transition: color .15s }
+.sc-tabs button:hover, .sc-tabs button.on { color: var(--ink) }
+.sc-tabs button.on { font-weight: 600 }
+.sc-tabs i { display: block; height: 3px; background: var(--i12) }
+.sc-tabs u { display: block; height: 100%; background: var(--ink); transform-origin: left; text-decoration: none }
+.sc-note { margin: 12px 0 0; color: var(--i50) }
+@media (max-width: 960px) {
+  .sc-body, .sc-outcome { grid-template-columns: 1fr }
+  .sc-left { border-right: 0; border-bottom: 1px solid var(--i12) }
+  .sc-body { min-height: 500px }
+  .sc-outcome { min-height: 206px }
+  .sc-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .sc-state { display: none }
+}

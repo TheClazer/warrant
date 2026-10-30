@@ -54,7 +54,7 @@ export function Missions({ notify }: { notify: Notify }) {
         </ul>
       </aside>
       <section className="detail">
-        <p className="scenario"><b>You're in a safe demo.</b> Pretend you're a student with a fictional course portal. A real AI agent will do a job on it, and Warrant decides what it may touch. No real accounts are involved.</p>
+        <p className="scenario"><b>You're in a safe demo.</b> Pretend you're a student with a fictional course portal. A real AI agent (NVIDIA Nemotron) will do a job on it, and Warrant decides what it may touch. It runs on our server with Warrant's built-in enforcer, not OpenShell. <a href="#/use">Run it on your machine</a>.</p>
         {current && (
           <div key={current.id} className="enter">
             <MissionDetail mission={current} everything={everything} reload={load} notify={notify} />
@@ -335,7 +335,7 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
       <a className="text-btn" href="#/app">← All jobs</a>
       <header className="run-head">
         <div>
-          <span className="label">{sandbox ? `NVIDIA OpenShell sandbox ${String(sandbox.name)}` : 'Built-in enforcer'} · {ago(run.started_at)}</span>
+          <span className="label">{sandbox ? `Enforced by NVIDIA OpenShell sandbox ${String(sandbox.name)}` : 'Enforced by Warrant’s built-in enforcer, not OpenShell'} · {ago(run.started_at)}</span>
           <h1>{status === 'running' ? <span className="shimmer">Agent is working</span> : blocked.length ? `Finished, ${blocked.length} request${blocked.length === 1 ? '' : 's'} blocked` : 'Finished, nothing blocked'}</h1>
         </div>
         <Status status={status} />

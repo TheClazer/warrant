@@ -26,7 +26,8 @@ ask for) is blocked by OpenShell, and the interface shows each decision with Ope
 
 Missions that write (submit an assignment, post a reply) ask for approval on every run.
 
-You can run it on your own machine. `uvx --from git+https://github.com/TheClazer/warrant warrant try` runs the
+You can run it on your own machine. `uvx --from git+https://github.com/TheClazer/warrant warrant prove` sends a scripted
+agent after your grades with and without a warrant, with no AI or key, and reads the result at the receiving end. `uvx --from git+https://github.com/TheClazer/warrant warrant try` runs the
 whole flow in a terminal, against a fictional portal it starts itself. `warrant guard --allow example.com -- your-command`
 limits a program you already have to the hosts you list, and prints each decision. That second command relies on
 standard proxy settings, so a program can ignore it; OpenShell is the version a program cannot opt out of.

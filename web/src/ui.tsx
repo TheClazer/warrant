@@ -1,5 +1,5 @@
 import { useInView } from 'motion/react'
-import { ReactNode, useRef } from 'react'
+import { ReactNode, useRef, useState } from 'react'
 
 export function Skeleton({ lines = 3 }: { lines?: number }) {
   return (
@@ -14,6 +14,27 @@ export function Reveal({ children, className = '' }: { children: ReactNode; clas
   const ref = useRef<HTMLDivElement>(null)
   const seen = useInView(ref, { once: true, amount: 0.1 })
   return <div ref={ref} className={`${className} ${seen ? 'enter' : 'before-enter'}`}>{children}</div>
+}
+
+export function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* clipboard blocked: the text can still be selected */ }
+  }
+  return <button className="copy" onClick={copy} aria-label={`Copy command: ${text}`}>{copied ? 'Copied' : label}</button>
+}
+
+export function Code({ text }: { text: string }) {
+  return (
+    <div className="code">
+      <CopyButton text={text} />
+      <pre>{text}</pre>
+    </div>
+  )
 }
 
 export function Tag({ children, tone }: { children: ReactNode; tone?: 'signal' }) {

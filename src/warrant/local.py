@@ -10,6 +10,7 @@ import threading
 import time
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from .checker import check
@@ -55,23 +56,44 @@ def _setup_output() -> None:
         os.system("")  # switches on ANSI colours in the Windows console
 
 
-def _start_demo_portal() -> str:
-    """Serve the fictional portal from this process, on a free local port."""
-    import uvicorn
-
-    from .demo.portal import create_portal
-
+def free_port(bind: str = "127.0.0.1") -> int:
     with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        port = probe.getsockname()[1]
-    server = uvicorn.Server(uvicorn.Config(create_portal(), host="127.0.0.1", port=port, log_level="warning"))
+        probe.bind((bind, 0))
+        return probe.getsockname()[1]
+
+
+def serve(server: Any) -> None:
+    """Start a uvicorn server on a background thread and wait until it accepts requests."""
     threading.Thread(target=server.run, daemon=True).start()
     deadline = time.monotonic() + 15
     while not server.started:
         if time.monotonic() > deadline:
             raise RuntimeError("The demo portal did not start.")
         time.sleep(0.05)
-    return f"http://127.0.0.1:{port}"
+
+
+def _own_address() -> str:
+    """This machine's network address. No packet is sent: connecting a UDP socket only picks a route."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        probe.connect(("192.0.2.1", 9))
+        return probe.getsockname()[0]
+
+
+def _start_demo_portal(for_sandbox: bool = False) -> str:
+    """Serve the fictional portal from this process, on a free port.
+
+    An OpenShell sandbox has its own network, so 127.0.0.1 there is not this machine. For sandboxed runs the
+    portal listens on this machine's network address instead.
+    """
+    import uvicorn
+
+    from .demo.portal import create_portal
+
+    bind = "0.0.0.0" if for_sandbox else "127.0.0.1"
+    address = _own_address() if for_sandbox else "127.0.0.1"
+    port = free_port(bind)
+    serve(uvicorn.Server(uvicorn.Config(create_portal(), host=bind, port=port, log_level="warning")))
+    return f"http://{address}:{port}"
 
 
 def _ask(prompt: str, assume: str | None) -> str:
@@ -177,7 +199,7 @@ def run_try(
             print("A key is needed to call Nemotron.", file=sys.stderr)
             return 2
     data_dir = Path(os.environ["WARRANT_DATA_DIR"]) if "WARRANT_DATA_DIR" in os.environ else Path.home() / ".warrant"
-    portal = settings.portal_url if "WARRANT_PORTAL_URL" in os.environ else _start_demo_portal()
+    portal = settings.portal_url if "WARRANT_PORTAL_URL" in os.environ else _start_demo_portal(settings.enforcer == "openshell")
     settings = replace(settings, nebius_api_key=key, portal_url=portal, data_dir=data_dir)
     portal_host = urlsplit(portal).hostname or ""
     catalogue = capability_index(build_registry(settings))
@@ -262,3 +284,28 @@ def run_guard(hosts: list[str], command: list[str]) -> int:
         return 127
     print(dim(f"  {counts['allowed']} allowed, {counts['blocked']} blocked"), file=sys.stderr)
     return code
+
+
+def run_prove() -> int:
+    from .prove import JOB, held, run_proof
+
+    _setup_output()
+    print(bold("WARRANT PROVE") + dim("  no AI, no key, and nothing leaves this machine"))
+    print(f"\nA scripted agent is given one job: {JOB.lower()}")
+    print("It also tries to do three things nobody asked for, first with broad access, then under a warrant.\n")
+    outcomes = run_proof()
+    bare, guarded = outcomes["without"], outcomes["with"]
+    width = max(len(name) for name in bare.attempts) + 2
+    print(bold(f"  {'':<{width}}{'Without Warrant':<18}With Warrant"))
+    for name, result in bare.attempts.items():
+        after = guarded.attempts[name]
+        shown = blocked(f"{after:<10}") if after == "BLOCKED" else allowed(f"{after:<10}")
+        print(f"  {name:<{width}}{result:<18}{shown}")
+    print(bold("\n  Checked at the receiving end"))
+    print(f"  {'Submissions the portal recorded':<{width + 8}}{bare.submissions:<10}{guarded.submissions}")
+    print(f"  {'Messages the stranger received':<{width + 8}}{len(bare.stranger_received):<10}{len(guarded.stranger_received)}")
+    if not held(outcomes):
+        print(blocked("\nThis result is not what Warrant promises. Please report it."))
+        return 1
+    print(allowed("\nSame agent, same attempts. The warrant is the only difference."))
+    return 0

@@ -1,10 +1,33 @@
 import { useInView, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { CopyButton } from './ui'
 
 type Line = { text: string; kind?: 'cmd' | 'input' | 'dim' | 'head' | 'ok' | 'bad' | 'gap'; wait?: number }
 
 /* Replayed from real runs of these commands. Only the long answer is shortened, and that line says so. */
 const SCRIPTS: Record<string, { label: string; lines: Line[] }> = {
+  prove: {
+    label: 'See the difference',
+    lines: [
+      { kind: 'cmd', text: 'uvx --from git+https://github.com/TheClazer/warrant warrant prove' },
+      { kind: 'head', text: 'WARRANT PROVE  no AI, no key, and nothing leaves this machine', wait: 500 },
+      { kind: 'gap', text: '' },
+      { text: 'A scripted agent is given one job: read the announcements.' },
+      { text: 'It also tries to do three things nobody asked for, first with broad access, then under a warrant.', wait: 900 },
+      { kind: 'gap', text: '' },
+      { kind: 'head', text: '                                    Without Warrant   With Warrant', wait: 500 },
+      { kind: 'ok', text: '  Read the announcements (its job)  read              read', wait: 700 },
+      { kind: 'bad', text: '  Read your grades                  read              BLOCKED', wait: 700 },
+      { kind: 'bad', text: '  Submit Lab 4 as you               submitted         BLOCKED', wait: 700 },
+      { kind: 'bad', text: '  Send your data to a stranger      sent              BLOCKED', wait: 900 },
+      { kind: 'gap', text: '' },
+      { kind: 'head', text: '  Checked at the receiving end' },
+      { text: '  Submissions the portal recorded           1         0', wait: 400 },
+      { text: '  Messages the stranger received            1         0', wait: 700 },
+      { kind: 'gap', text: '' },
+      { kind: 'ok', text: 'Same agent, same attempts. The warrant is the only difference.' },
+    ],
+  },
   try: {
     label: 'Try the whole flow',
     lines: [
@@ -34,6 +57,27 @@ const SCRIPTS: Record<string, { label: string; lines: Line[] }> = {
       { kind: 'bad', text: '  With it:    stopped before being sent. The agent never got that data.' },
     ],
   },
+  openshell: {
+    label: 'With NVIDIA OpenShell',
+    lines: [
+      { kind: 'cmd', text: 'WARRANT_ENFORCER=openshell warrant try --remove portal.read.grades --yes' },
+      { kind: 'head', text: 'The AI asked for:', wait: 1300 },
+      { text: '  1. Read announcements on the course portal' },
+      { kind: 'dim', text: '  Everything else on this site, and every other website, stays blocked.' },
+      { kind: 'input', text: 'Approve and run? [Y/n] |y', wait: 400 },
+      { kind: 'gap', text: '' },
+      { kind: 'head', text: 'Running the agent', wait: 500 },
+      { kind: 'dim', text: '  NVIDIA OpenShell sandbox wrt-680ef393c0e9', wait: 1400 },
+      { kind: 'ok', text: '  ALLOWED  GET /announcements', wait: 900 },
+      { kind: 'bad', text: '  BLOCKED  GET /grades  not in this warrant', wait: 1000 },
+      { kind: 'gap', text: '' },
+      { kind: 'head', text: 'What changed because of Warrant' },
+      { text: '  Without it: GET /grades would have gone through.' },
+      { kind: 'bad', text: '  With it:    stopped before being sent. The agent never got that data.' },
+      { kind: 'gap', text: '' },
+      { kind: 'dim', text: '  3 Nemotron calls, 3,994 tokens' },
+    ],
+  },
   guard: {
     label: 'Guard your own script',
     lines: [
@@ -53,7 +97,7 @@ const SCRIPTS: Record<string, { label: string; lines: Line[] }> = {
 }
 
 export function Terminal() {
-  const [tab, setTab] = useState<keyof typeof SCRIPTS>('try')
+  const [tab, setTab] = useState<keyof typeof SCRIPTS>('prove')
   const [count, setCount] = useState(0)
   const [typed, setTyped] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
@@ -94,6 +138,7 @@ export function Terminal() {
         {Object.entries(SCRIPTS).map(([id, s]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{s.label}</button>
         ))}
+        <span className="term-copy"><CopyButton text={lines.find(l => l.kind === 'cmd')?.text ?? ''} label="Copy command" /></span>
       </div>
       <div className="term-body" ref={body} aria-label="Terminal replay">
         {lines.slice(0, count).map((line, i) => <Row key={`${tab}-${i}`} line={line} />)}

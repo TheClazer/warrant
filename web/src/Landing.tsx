@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, EvalSummary } from './api'
 import { Playground } from './Playground'
-import { Preview } from './Preview'
 import ClickSpark from './rb/ClickSpark.jsx'
 import DecryptedText from './rb/DecryptedText.jsx'
 import GradientASCII from './rb/GradientASCII.jsx'
@@ -10,15 +9,16 @@ import Magnet from './rb/Magnet.jsx'
 import RotatingText from './rb/RotatingText.jsx'
 import SpotlightCard from './rb/SpotlightCard.jsx'
 import TechText from './rb/TechText.jsx'
+import { Scenes } from './Scenes'
 import { Terminal } from './Terminal'
-import { Reveal } from './ui'
+import { Code, Reveal } from './ui'
 
 const REPO = 'https://github.com/TheClazer/warrant'
 
 const STEPS = [
   { n: '01', title: 'Nemotron drafts the minimum', body: 'It reads your mission and picks only what the job needs from a reviewed list. It cannot invent a website or widen a path.' },
   { n: '02', title: 'You read it and decide', body: 'Plain sentences, no YAML. Remove anything you dislike. Missions that post or submit ask you again on every run.' },
-  { n: '03', title: 'The sandbox holds the line', body: 'Each run gets a fresh NVIDIA OpenShell sandbox built from your warrant. If the agent reaches further, the request never leaves.' },
+  { n: '03', title: 'Code holds the line, not the AI', body: 'Every request is checked against your warrant before it is sent. On your machine, NVIDIA OpenShell does this in a fresh sandbox. This website uses the built-in enforcer.' },
 ]
 
 const LOG = [
@@ -53,6 +53,7 @@ export function Landing() {
         <nav className="lnav wrap" aria-label="Main">
           <a className="mark" href="#/">WARRANT</a>
           <div className="lnav-links mono">
+            <a href="#examples" onClick={jump('examples')}>Examples</a>
             <a href="#try" onClick={jump('try')}>Try it</a>
             <a href="#how" onClick={jump('how')}>How it works</a>
             <a href="#proof" onClick={jump('proof')}>Evidence</a>
@@ -76,7 +77,7 @@ export function Landing() {
                 staggerDuration={0.015} staggerFrom="last" splitBy="characters" /></span>
             </h1>
             <div>
-              <p>Before each job, it gets a short list of what it may touch. You approve it. Anything else gets blocked, and you see it happen.</p>
+              <p>Before each job, your AI agent gets a short list of what it may touch. You approve it. Anything else gets blocked, and you see it happen.</p>
               <div className="row">
                 <Magnet padding={70} magnetStrength={4}><a className="btn signal big-btn" href="#/app">Try the live demo</a></Magnet>
                 <a className="btn ghost-dark big-btn" href="#try" onClick={jump('try')}>Try to break it</a>
@@ -88,6 +89,12 @@ export function Landing() {
           <LogoLoop logos={STRIP} speed={46} gap={44} logoHeight={13} pauseOnHover={false} fadeOut={false} />
         </div>
       </header>
+
+      <section id="examples" className="wrap sec examples">
+        <span className="label">How it helps</span>
+        <h2>Four ways an agent goes too far, and what happens instead.</h2>
+        <Scenes />
+      </section>
 
       <section id="try" className="wrap sec try">
         <Reveal>
@@ -101,22 +108,12 @@ export function Landing() {
         <div className="wrap sec local">
           <Reveal>
             <span className="label on-dark">On your own machine</span>
-            <h2>One command. Your terminal.</h2>
-            <p className="lede on-dark">Run the same flow on your laptop, or limit a script you already have to the sites you choose.</p>
-            <div className="oneliner mono"><span>$</span> uvx --from git+https://github.com/TheClazer/warrant warrant try</div>
+            <h2>Don't take our word for it. Run the attack yourself.</h2>
+            <p className="lede on-dark">One command sends a misbehaving agent after your grades, with and without a warrant. No AI or key needed, and nothing leaves your machine.</p>
+            <div className="oneliner"><Code text="uvx --from git+https://github.com/TheClazer/warrant warrant prove" /></div>
             <a className="btn signal" href="#/use">See every command</a>
           </Reveal>
           <Reveal><Terminal /></Reveal>
-        </div>
-      </section>
-
-      <section className="band-dark">
-        <div className="wrap sec">
-          <Reveal>
-            <span className="label on-dark">A whole mission, start to finish</span>
-            <h2>Eight seconds of what the app does.</h2>
-            <div className="hero-preview"><Preview /></div>
-          </Reveal>
         </div>
       </section>
 

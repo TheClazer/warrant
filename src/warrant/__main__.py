@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     tri.add_argument("job", nargs="?", help="what the agent should do on the portal")
     tri.add_argument("--remove", action="append", default=[], help="capability ID to take away, for example portal.read.grades")
     tri.add_argument("--yes", action="store_true", help="approve without asking")
+    sub.add_parser("prove", help="show a misbehaving agent with and without a warrant (no AI, no key)")
     guard = sub.add_parser("guard", help="run a local program with its web traffic limited to hosts you allow")
     guard.add_argument("--allow", action="append", default=[], metavar="HOST", help="allowed host, or *.example.com")
     guard.add_argument("command_", nargs=argparse.REMAINDER, metavar="-- COMMAND", help="the program and its arguments")
@@ -51,6 +52,11 @@ def main(argv: list[str] | None = None) -> int:
 
         uvicorn.run(create_portal(), host=args.host, port=args.port, log_level="warning")
         return 0
+
+    if args.command == "prove":
+        from .local import run_prove
+
+        return run_prove()
 
     if args.command == "guard":
         from .local import run_guard

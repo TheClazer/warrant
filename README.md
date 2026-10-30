@@ -63,6 +63,16 @@ All on 26 October 2026, with real services. Details in `docs/verification/opensh
 | `web/` | React interface (missions, warrant approval, live run view, reviewed sites) |
 | `FEEDBACK.md` | Notes on Nebius and NVIDIA tools gathered while building |
 
+## See the difference
+
+A scripted agent tries to read your grades, submit your lab and send your data to a stranger, once with broad access
+and once under a warrant. The result is read at the receiving end. No model or key is involved, nothing leaves your
+machine, and it uses the built-in enforcer. The same check is in `tests/test_prove.py`.
+
+```bash
+uvx --from git+https://github.com/TheClazer/warrant warrant prove
+```
+
 ## Try it in your terminal
 
 Needs [uv](https://docs.astral.sh/uv/) and a Nebius Token Factory key. This starts a fictional portal on your
@@ -82,6 +92,18 @@ No model is involved.
 
 ```bash
 warrant guard --allow api.example.com -- python my_agent.py
+```
+
+Or import it, on Python 3.11 or 3.12 (`pip install git+https://github.com/TheClazer/warrant`):
+
+```python
+import httpx
+from warrant import guard
+
+with guard(allow=["example.com"]) as report:
+    httpx.get("https://example.com/")   # goes through
+    httpx.get("https://www.iana.org/")  # raises httpx.ProxyError
+print(report.blocked)
 ```
 
 This is cooperative: it uses the standard proxy environment variables, which a program can ignore, and for HTTPS it

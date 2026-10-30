@@ -12,7 +12,8 @@ import select
 import socket
 import subprocess
 import threading
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from http.client import HTTPConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -164,3 +165,35 @@ def proxied_env(proxy_url: str, base: dict[str, str] | None = None) -> dict[str,
 def run_guarded(command: list[str], hosts: list[str], on_seen: Callable[[Seen], None]) -> int:
     with GuardProxy(hosts, on_seen) as proxy:
         return subprocess.call(command, env=proxied_env(proxy.url))
+
+
+@dataclass
+class Report:
+    seen: list[Seen] = field(default_factory=list)
+
+    @property
+    def allowed(self) -> list[Seen]:
+        return [s for s in self.seen if s.allowed]
+
+    @property
+    def blocked(self) -> list[Seen]:
+        return [s for s in self.seen if not s.allowed]
+
+
+@contextmanager
+def guard(allow: Iterable[str]) -> Iterator[Report]:
+    """Limit web traffic in this block to the hosts in ``allow``.
+
+    It works through the proxy environment variables, so it covers clients created inside the block, such as
+    ``requests`` and ``httpx``. It applies to the whole process and is cooperative, like ``warrant guard``.
+    """
+    report = Report()
+    with GuardProxy(allow, report.seen.append) as proxy:
+        saved = dict(os.environ)
+        os.environ.clear()
+        os.environ.update(proxied_env(proxy.url, saved))
+        try:
+            yield report
+        finally:
+            os.environ.clear()
+            os.environ.update(saved)
