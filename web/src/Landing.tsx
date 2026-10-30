@@ -71,9 +71,9 @@ export function Landing() {
               speed={0.7} />
           </div>
           <div className="hero-row">
-            <h1>Give your AI agent a warrant, <br />not your{' '}
-              <RotatingText texts={['keys.', 'passwords.', 'inbox.', 'bank login.']} rotationInterval={2200} mainClassName="rotator"
-                staggerDuration={0.015} staggerFrom="last" splitBy="characters" />
+            <h1>Give your AI agent a warrant, <span className="nowrap">not your{' '}
+              <RotatingText texts={['keys.', 'passwords.', 'inbox.', 'wallet.']} rotationInterval={2200} mainClassName="rotator"
+                staggerDuration={0.015} staggerFrom="last" splitBy="characters" /></span>
             </h1>
             <div>
               <p>Before each job, it gets a short list of what it may touch. You approve it. Anything else gets blocked, and you see it happen.</p>

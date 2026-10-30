@@ -46,7 +46,7 @@ export function Answer({ text }: { text: string }) {
         : part.startsWith('`') ? <code key={i}>{part.slice(1, -1)}</code> : part)
   return (
     <div className="answer">
-      {text.split(/\n{2,}/).map((b, i) => {
+      {text.replace(/^(#{1,4}\s.+)$/gm, '\n$1\n').split(/\n{2,}/).map(b => b.trim()).filter(b => b && !/^-{3,}$/.test(b)).map((b, i) => {
         const lines = b.split('\n').filter(Boolean)
         if (lines.length >= 2 && lines.every(l => l.trim().startsWith('|'))) {
           const cells = (l: string) => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim())

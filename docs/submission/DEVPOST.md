@@ -26,6 +26,11 @@ ask for) is blocked by OpenShell, and the interface shows each decision with Ope
 
 Missions that write (submit an assignment, post a reply) ask for approval on every run.
 
+You can run it on your own machine. `uvx --from git+https://github.com/TheClazer/warrant warrant try` runs the
+whole flow in a terminal, against a fictional portal it starts itself. `warrant guard --allow example.com -- your-command`
+limits a program you already have to the hosts you list, and prints each decision. That second command relies on
+standard proxy settings, so a program can ignore it; OpenShell is the version a program cannot opt out of.
+
 ## How we built it
 
 - **NVIDIA Nemotron 3 Super** (`nvidia/nemotron-3-super-120b-a12b`) on **Nebius Token Factory** drafts warrants

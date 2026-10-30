@@ -463,3 +463,5 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 
 .hero-bg::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(20, 21, 24, .72), rgba(20, 21, 24, 0) 26%) }
 .eyebrow { display: table; padding: 3px 8px; background: var(--ink); }
+.nowrap { display: block; white-space: nowrap }
+.nowrap .rotator { white-space: nowrap; flex-wrap: nowrap }
