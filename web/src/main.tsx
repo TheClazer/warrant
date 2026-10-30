@@ -3,7 +3,7 @@ import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { api, Status, token } from './api'
 import { Landing } from './Landing'
-import { HackathonBadge, NebiusMark, NvidiaMark } from './Logos'
+import { HackathonBadge, NvidiaMark, PoweredByNebius } from './Logos'
 import './styles.css'
 import { MemoryPage } from './Memory'
 import { UseIt } from './UseIt'
@@ -80,10 +80,10 @@ function Shell({ route }: { route: Route }) {
         </nav>
         <dl className="side-sys">
           <div><dt>Model</dt><dd><span className={`dot ${status?.live_model ? 'live' : ''}`} /><NvidiaMark />{status ? (status.live_model ? 'Nemotron 3 Super' : 'Offline') : 'Connecting…'}</dd></div>
-          <div><dt>Served by</dt><dd><NebiusMark />Nebius Token Factory</dd></div>
           <div><dt>Enforcer</dt><dd>{status?.enforcer === 'openshell' && <NvidiaMark />}{status ? (status.enforcer === 'openshell' ? 'NVIDIA OpenShell' : 'Built-in') : '…'}</dd></div>
           {status?.demo && <div><dt>Portal</dt><dd>Fictional demo</dd></div>}
         </dl>
+        <PoweredByNebius />
         <HackathonBadge />
         {status?.auth_required && <button className="text-btn on-dark" onClick={() => setAskToken(true)}>{token.get() ? 'Owner signed in' : 'Owner sign-in'}</button>}
       </aside>

@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { api, Capability, EvalSummary, Mission, Run, RunEvent, Site, streamRun, Warrant } from './api'
-import { NebiusMark, NvidiaMark } from './Logos'
+import { NebiusLogo, NvidiaMark } from './Logos'
 import CallChip from './rb/CallChip.jsx'
 import { Answer, ago, Skeleton, Status, Tag } from './ui'
 
@@ -218,7 +218,7 @@ function WarrantCard({ warrant, everything, hint, busy, onApprove, onReject, onN
     <div className={`card ${pending ? 'pending' : ''}`}>
       {pending && <span className="beam" aria-hidden="true" />}
       {pending && <p className="next"><b>Here's what the AI asked for.</b> Remove anything you don't want it to have, then approve.</p>}
-      {pending && warrant.model && <p className="drafted"><NvidiaMark />Drafted by NVIDIA Nemotron 3 Super<NebiusMark />on Nebius Token Factory</p>}
+      {pending && warrant.model && <p className="drafted"><NvidiaMark />Drafted by NVIDIA Nemotron 3 Super on <NebiusLogo /> Token Factory</p>}
       {pending && hint && granted.has(GRADES) && (
         <p className="try-this"><b>Try this:</b> remove “Read your grades”, approve, then run. The job still asks for grades, so you'll see the agent get stopped.</p>
       )}
@@ -432,7 +432,7 @@ export function RunPage({ runId, portal }: { runId: string; portal?: string }) {
           {models.length > 0 && (
             <div className="powered">
               <span className="label">Every model call in this run</span>
-              <p className="powered-by"><span><NvidiaMark />{String(models[0].model ?? '').split('/').pop()}</span><span><NebiusMark />Nebius Token Factory</span></p>
+              <p className="powered-by"><span><NvidiaMark />{String(models[0].model ?? '').split('/').pop()}</span><span>Served by <NebiusLogo /></span></p>
               <table>
                 <thead><tr><th>Call</th><th>Tokens in</th><th>Tokens out</th><th>Time</th></tr></thead>
                 <tbody>

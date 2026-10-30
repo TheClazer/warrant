@@ -574,7 +574,7 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .hack-logos i { font: 500 11px var(--mono); color: inherit; opacity: .7 }
 .lnav .hack-badge { margin-right: auto; color: var(--paper); background: rgba(20, 21, 24, .72); padding: 6px 10px }
 .side .hack-badge { align-items: flex-start; flex-direction: column; gap: 5px; padding-top: 12px; border-top: 1px solid var(--d15); color: var(--d70); font-size: 10px }
-.side-sys dd .logo { font-size: 13px; color: var(--signal) }
+.side-sys dd .logo { font-size: 13px }
 .powered-sec { padding-bottom: 56px }
 .pw-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 36px; background: var(--i20); box-shadow: 0 0 0 1px var(--i20) }
 .pw-card { display: flex; flex-direction: column; background: var(--white); padding: 24px }
@@ -604,3 +604,14 @@ td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--i12); vertical-al
 .brief dd { margin: 0; color: var(--i70) }
 .brief > div:hover dd { color: var(--ink) }
 @media (max-width: 720px) { .brief > div { grid-template-columns: 1fr; gap: 2px } }
+
+/* Powered by Nebius: the logo is shown as supplied, on a dark ground it was made to sit on */
+.neb-logo { height: 1.5em; width: auto; flex: none; display: inline-block; vertical-align: middle }
+.powered-nebius { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font: 500 12px var(--mono); font-stretch: 87.5%; transition: opacity .15s }
+.powered-nebius:hover { opacity: .8 }
+.powered-nebius .neb-logo { height: 22px }
+.hero-row .powered-nebius { margin-top: 16px; color: var(--d70); text-shadow: none }
+.side .powered-nebius { color: var(--d70); font-size: 10.5px; flex-wrap: wrap; gap: 6px }
+.side .powered-nebius .neb-logo { height: 18px }
+.pw-logo .neb-logo { height: 26px }
+.powered-by .neb-logo, .drafted .neb-logo { height: 17px }

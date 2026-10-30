@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, EvalSummary } from './api'
-import { HackathonBadge, NebiusWord, NvidiaWord } from './Logos'
+import { HackathonBadge, NebiusLogo, NvidiaWord, PoweredByNebius } from './Logos'
 import { Playground } from './Playground'
 import ClickSpark from './rb/ClickSpark.jsx'
 import DecryptedText from './rb/DecryptedText.jsx'
@@ -96,6 +96,7 @@ export function Landing() {
                 <Magnet padding={70} magnetStrength={4}><a className="btn signal big-btn" href="#/app">Try the live demo</a></Magnet>
                 <a className="btn ghost-dark big-btn" href="#try" onClick={jump('try')}>Try to break it</a>
               </div>
+              <PoweredByNebius />
             </div>
           </div>
         </div>
@@ -169,7 +170,7 @@ export function Landing() {
               <code>nvidia/nemotron-3-super-120b-a12b</code>
             </article>
             <article className="pw-card">
-              <div className="pw-logo"><NebiusWord /></div>
+              <div className="pw-logo"><NebiusLogo /></div>
               <h3>Token Factory</h3>
               <p>Serves every model call. Each run shows the model, tokens and time for every call it made.</p>
               <code>api.tokenfactory.nebius.com/v1</code>
@@ -249,7 +250,7 @@ export function Landing() {
         <span>This website's app is a shared demo with a fictional portal and the built-in enforcer.</span>
         <span>For real use, run it on your machine with your own sites and OpenShell.</span>
         <a href={REPO} target="_blank" rel="noreferrer">Apache-2.0</a>
-        <span>Nebius and NVIDIA logos belong to their owners. Warrant is a hackathon entry, not a Nebius or NVIDIA product.</span>
+        <span>Nebius and NVIDIA names and logos belong to their owners. Warrant is an independent hackathon entry, not endorsed by either.</span>
       </footer>
       </ClickSpark>
     </div>
