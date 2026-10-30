@@ -33,7 +33,9 @@ Missions that write (submit an assignment, post a reply) ask for approval on eve
 - **NVIDIA OpenShell 0.1.5** enforces each warrant: we render the warrant as an OpenShell policy (REST
   endpoints with method and path rules, `enforcement: enforce`), create one sandbox per run, fetch every page
   from inside it, and parse OpenShell's OCSF decision log into the live security feed.
-- **Nebius AI Cloud** hosts the app, the sandbox host and the demo portal [on a CPU VM].
+- The agent is our own small tool-using agent, also running on Nemotron. Approved read-only missions can run on a schedule.
+- The public demo is hosted on Render and uses Warrant's built-in enforcer, which applies the same rules. Real
+  OpenShell runs need a Docker host, so they are shown in the video and documented in the repository.
 - Python (FastAPI, Pydantic, SQLite) for the service; React, TypeScript and Motion for the interface.
 
 The model can only choose capability IDs from a reviewed catalogue, so it cannot invent a website, a wildcard
@@ -60,17 +62,17 @@ the response.
 
 ## Accomplishments
 
-- Warrants are enforced by NVIDIA's sandbox, not by our own code.
+- With OpenShell enabled, warrants are enforced by NVIDIA's sandbox, not by our own code.
 - Every claim in this submission comes from a recorded run.
 
 ## What's next
 
-Hermes Agent inside the sandbox as the long-running agent, scheduled missions, more reviewed sites, and a
-published evaluation on a standard prompt-injection benchmark.
+Hermes Agent inside the sandbox as the long-running agent, more reviewed sites, a hosted OpenShell deployment on
+Nebius AI Cloud, and a published evaluation on a standard prompt-injection benchmark.
 
 ## Built with
 
-nvidia-nemotron, nebius-token-factory, nvidia-openshell, nebius-ai-cloud, python, fastapi, react, typescript
+nvidia-nemotron, nebius-token-factory, nvidia-openshell, python, fastapi, react, typescript
 
 ## New this submission period
 

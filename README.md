@@ -27,11 +27,14 @@ Built for the Nebius × NVIDIA Global AI Hackathon (Personal AI track).
 6. **You see everything.** Allowed and blocked requests, Nemotron calls, tokens and cost stream to the
    interface while the agent works.
 
-```
-mission ──► Nemotron (Token Factory) ──► draft warrant ──► checker ──► you approve
-                                                                         │
-                         security feed ◄── OpenShell sandbox per run ◄───┘
-                                              └─ agent (Hermes on the host)
+```mermaid
+flowchart LR
+  M[Your mission] --> N["NVIDIA Nemotron 3 Super<br/>Nebius Token Factory"]
+  N --> D[Draft warrant] --> C[Checker: plain code] --> A[You approve]
+  A --> S["Fresh NVIDIA OpenShell sandbox<br/>policy generated from the warrant"]
+  S -->|allowed| P[Pages in the warrant]
+  S -.->|blocked and logged| X[Everything else]
+  S --> F[Live security feed]
 ```
 
 ## Verified so far
@@ -110,7 +113,13 @@ uv run mypy
 - **Nebius Token Factory** serves Nemotron through its OpenAI-compatible API. Every call is recorded with
   tokens and latency; cost is shown when prices are configured from the Token Factory price page.
 - **NVIDIA OpenShell** enforces each warrant as a sandbox policy on the Nebius host.
-- **Hermes Agent** (Nous Research) is the agent run inside OpenShell on the host.
+
+## Current limits
+
+- The agent is Warrant's own small tool-using agent. Running Hermes Agent inside the sandbox is planned, not done.
+- The public demo uses the built-in enforcer; real OpenShell runs need a Docker host and are shown in the video.
+- The evaluation so far is an over-reach test on a fictional portal, run with the built-in enforcer. It does not
+  yet include planted prompt-injection pages.
 
 ## Honesty
 
@@ -120,4 +129,4 @@ does not stop misuse of access the warrant grants. Writing capabilities therefor
 
 ## Licence
 
-Apache-2.0. Hermes Agent, OpenShell and Nemotron are the work of their respective authors.
+Apache-2.0. OpenShell and Nemotron are the work of NVIDIA.
