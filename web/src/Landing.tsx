@@ -78,7 +78,7 @@ export function Landing() {
             <a href="#try" onClick={jump('try')}>Try it</a>
             <a href="#how" onClick={jump('how')}>How it works</a>
             <a href="#proof" onClick={jump('proof')}>Evidence</a>
-            <a href="#/use">Use it yourself</a>
+            <a href="#/use">Install</a>
             <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>
           </div>
           <a className="btn signal" href="#/app">Open the app</a>

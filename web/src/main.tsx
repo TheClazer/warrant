@@ -23,9 +23,9 @@ function readHash(): Route {
 }
 
 const NAV: [Route['view'], string, string][] = [
-  ['app', 'Try it', '#/app'],
+  ['app', 'Live demo', '#/app'],
   ['memory', 'Memory and skills', '#/memory'],
-  ['use', 'Use it yourself', '#/use'],
+  ['use', 'Install', '#/use'],
   ['sites', 'Reviewed sites', '#/sites'],
   ['evidence', 'Evidence', '#/evidence'],
 ]

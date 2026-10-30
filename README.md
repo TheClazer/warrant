@@ -13,7 +13,7 @@ anywhere else, the request is blocked, logged and shown to you, and the mission 
 
 Built for the Nebius × NVIDIA Global AI Hackathon (Personal AI track).
 
-**[Watch the demo](https://youtu.be/U3mQIKMDdmE)** · **[Try the live demo](https://warrant-demo.onrender.com)**
+**[Watch the demo](https://youtu.be/U3mQIKMDdmE)** · **[Try the live demo](https://warrant-demo.onrender.com)** (if it has been idle, the first load takes about a minute)
 
 ## How it works
 
